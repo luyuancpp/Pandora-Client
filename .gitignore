@@ -1,0 +1,49 @@
+# Unreal Engine 项目 .gitignore
+
+# === 引擎构建产物 ===
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+Build/
+.vs/
+*.VC.db
+*.opensdf
+*.opendb
+*.sdf
+*.sln
+*.suo
+*.xcodeproj
+*.xcworkspace
+
+# === IDE ===
+.idea/
+.vscode/
+*.user
+*.swp
+
+# === Mac ===
+.DS_Store
+
+# === Windows ===
+Thumbs.db
+desktop.ini
+
+# === 项目临时 ===
+*.bak
+*.tmp
+*.log
+
+# === Unreal Editor 自动生成 ===
+*.generated.h
+*.generated.cpp
+
+# === 不要提交本地用户设置 ===
+Config/DefaultEditorPerProjectUserSettings.ini
+
+# === Claude / AI 辅助文件 ===
+.claude/
+
+# === 但要保留这些根级 BAT ===
+!*.bat
+!*.uproject
