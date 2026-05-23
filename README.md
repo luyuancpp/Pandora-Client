@@ -110,6 +110,63 @@ REM 3. 启动编辑器（双击 Xuanming.uproject 即可）
 
 这就是为什么我们**不需要在引擎仓库里放 global.json** —— 只要 `GenerateProjectFiles.bat` 始终在项目目录调用 dotnet，.NET 8 就生效。
 
+### 引擎纯净保护机制（双重保险）
+
+为了**绝对防止** Claude Code 或任何其他工具污染引擎仓库，本项目提供了一键安装脚本：
+
+```cmd
+F:\work\Xuanming\Tools\SetupEngineGuards.bat
+```
+
+它会装两道保险：
+
+#### 第一道：Junction 重定向（物理层）
+
+把 `F:\work\UnrealEngine\.claude` 做成指向 `F:\work\Xuanming\.claude` 的目录 junction。
+
+任何工具（包括 Claude Code 本身）写入 `F:\work\UnrealEngine\.claude\xxx` 时，操作系统会**透明地**把它落到 `F:\work\Xuanming\.claude\xxx`，引擎仓库根本不会有这个目录的真实数据。
+
+```
+F:\work\UnrealEngine\.claude  ──[Junction]──>  F:\work\Xuanming\.claude
+                                                      │
+                                                      └──[.gitignore 屏蔽]
+```
+
+#### 第二道：pre-commit hook（git 层）
+
+万一 junction 失效（被人手动删了，或换机器没装），还有一道防线：在 `F:\work\UnrealEngine\.git\hooks\pre-commit` 装一个 hook，任何 `git commit` 时检查暂存区，发现 `.claude/` 路径下的文件直接 abort。
+
+测试一下（**会被 hook 拒绝**）：
+```cmd
+cd F:\work\UnrealEngine
+git add .claude/
+git commit -m "试试看"
+# [pre-commit] BLOCKED: refusing to commit files under .claude/
+# [pre-commit] These are Claude Code session state, not engine source.
+```
+
+#### 一键复现
+
+换电脑或重装环境时，跑一次：
+```cmd
+F:\work\Xuanming\Tools\SetupEngineGuards.bat
+```
+
+脚本是幂等的（重跑无害）：
+- 已经有 junction → 跳过
+- 已经有 hook → 覆盖更新
+
+### 引擎是否被改的随时检查
+
+任何时候都可以验证引擎仓库纯净：
+```cmd
+F:\work\Xuanming\Tools\CheckEngineUntouched.bat
+```
+
+输出 `[PurityCheck] OK: engine tracked files are clean.` 就是干净的。
+
+`GenerateProjectFiles.bat`、`BuildEditor.bat` 等都会在执行前自动跑这个检查，发现引擎被改过会直接 abort。
+
 ---
 
 ## 本地联调（DS + Client）
