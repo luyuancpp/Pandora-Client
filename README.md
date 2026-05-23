@@ -47,30 +47,68 @@ Xuanming/
 
 ## 首次使用
 
+> ⚠️ **设计原则：本项目不修改引擎源码任何文件**
+> 项目目录里有自己的 `global.json` 锁定 .NET 版本，编译产物落在引擎的 `bin/` 子目录（已被 .gitignore 排除），所以引擎仓库的 `git status` 里**不会出现任何 tracked 文件改动**。
+> `Tools/CheckEngineUntouched.bat` 是护栏，每次 `GenerateProjectFiles.bat` 都会先跑它，发现引擎被改过会直接 abort。
+
 ### 环境准备
 
 1. **Visual Studio 2022**（必须勾选"使用 C++ 的游戏开发"工作负载）
-2. **.NET SDK 8.0+**
+2. **.NET SDK 8.0**（必须，UE 5.7 的 `.Build.cs` 用了 C# 12 集合表达式 `[...]`）
+   ```cmd
+   winget install Microsoft.DotNet.SDK.8
+   ```
+   .NET 10 / .NET 9 都不行——本项目的 `global.json` 强制锁定到 8.x。
 3. **Git** 2.x
-4. **Git LFS**（必装！UE 资源全靠它）
+4. **Git LFS**（必装！UE 美术资源全靠它）
    ```cmd
    winget install GitHub.GitLFS
    git lfs install
    ```
 5. **源码版 Unreal Engine 5.7.4**，路径 `F:\work\UnrealEngine`
-   - 引擎必须先编译完成（已确认 `UnrealEditor.exe` 存在）
+   - 必须从 EpicGames 官方 GitHub clone（需要先关联 Epic 账号）
+   - **必须跑过 Setup.bat 拉完二进制依赖**，否则 `EpicGames.Horde` 会缺 `Protos/horde/*.proto`
+   - 如果 Setup.bat 没反应，直接调：
+     ```cmd
+     F:\work\UnrealEngine\Engine\Binaries\DotNET\GitDependencies\win-x64\GitDependencies.exe --force --threads=8
+     ```
 
 ### 步骤
 
 ```cmd
-REM 1. 生成 VS 工程文件
+REM 1. 生成 VS 工程文件（首次会自动编译 UBT，约 10-20 秒）
 GenerateProjectFiles.bat
 
-REM 2. 用 VS 打开 Xuanming.sln，或直接：
+REM 2. 用 VS 打开 Xuanming.sln，或直接命令行编译：
 BuildEditor.bat
 
 REM 3. 启动编辑器（双击 Xuanming.uproject 即可）
 ```
+
+`GenerateProjectFiles.bat` 内部做了 4 件事：
+1. 跑 `Tools\CheckEngineUntouched.bat` 验证引擎没被改
+2. 检查 .NET 8 SDK 存在
+3. 如果 `Engine/Source/Programs/UnrealBuildTool/bin/Development/UnrealBuildTool.dll` 不存在，用项目的 .NET 8 编译它（产物落在引擎 `bin/`，被 `.gitignore` 屏蔽）
+4. 调 UBT 生成 `Xuanming.sln`
+
+### 关于 `global.json`
+
+本项目根目录的 `global.json` 锁定 .NET 8.0.100：
+
+```json
+{
+  "sdk": {
+    "version": "8.0.100",
+    "rollForward": "latestFeature"
+  }
+}
+```
+
+`dotnet` 工具会**从工作目录向上查找** `global.json`。所以：
+- 在项目目录跑 `dotnet --version` → `8.0.421`（被 .NET 8 任意补丁版本 roll forward 接管）
+- 在 `F:\` 根跑 `dotnet --version` → `10.0.x`（系统默认）
+
+这就是为什么我们**不需要在引擎仓库里放 global.json** —— 只要 `GenerateProjectFiles.bat` 始终在项目目录调用 dotnet，.NET 8 就生效。
 
 ---
 
