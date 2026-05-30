@@ -181,16 +181,21 @@ UE 5.7.4 release 自带的 `Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTo
 - ✅ IMC_Default 配 8 条 mapping，WASD 4 方向都对
 - ✅ 用 `Tools/ConfigureInput.py` Python 脚本一键配置（避免手动配 Modifier 出错）
 
+**M1.3 完成** (2026-05-30)：BP_Weapon_AK + WeaponSocket 全链路通
+- ✅ C++ `XuanmingWeapon::WeaponMesh` 改 `UStaticMeshComponent`（接 placeholder Cube）
+- ✅ C++ 新增 `UXuanmingSocketTools::AddWeaponSocketToMesh`（BlueprintCallable, WITH_EDITOR）
+  - 绕开 UE 5.7 Python 对 `BlueprintReadOnly` 字段的写禁止
+  - C++ 端裸字段赋值 + `AddSocket(bAddToSkeleton=true)` + `NumSockets` 校验
+- ✅ `Tools/AddWeaponSocket.py` 在 SKM_Manny_Simple 上加 WeaponSocket（hand_r, 偏移 (10,4,-2) Yaw=90）
+- ✅ `Tools/CreateWeaponBP.py` 建 `Content/Weapons/BP_Weapon_AK`（继承 AXuanmingWeapon）
+  - WeaponMesh = `/Engine/BasicShapes/Cube`, scale=(0.5, 0.1, 0.1)
+  - BP_XuanmingCharacter.DefaultWeaponClass = BP_Weapon_AK
+- ✅ PIE 验证：右手有 Cube placeholder AK，鼠标左键开火出 DrawDebugLine
+- ⚠️ 准星和命中反馈缺失（白盒角色没参照物难瞄）→ M1.4 UMG HUD 解决
+
 ### M1 剩余子里程碑（FPS PoC 路线图）
 
 ```
-M1.3 BP_Weapon_AK + 武器 Socket             1-2 天
-  - SK_Mannequin 骨架右手骨骼加 WeaponSocket
-  - 建 BP_Weapon_AK 蓝图（继承 AXuanmingWeapon）
-  - 挂 placeholder Cube 或引擎自带 SM_AssaultRifle
-  - BP_XuanmingCharacter.DefaultWeaponClass = BP_Weapon_AK
-  - 验证：开火 LineTrace 命中 + 减血同步
-
 M1.4 UMG HUD（替代 C++ Canvas）            1-2 天
   - WBP_PlayerHUD：血条、弹药、准星
   - WBP_KillFeed：击杀飘字
@@ -289,6 +294,11 @@ M1.5 GAS 框架 + 玄冥冰咒示例技能           3-5 天
 | 真 DS 模式 (LaunchServer.bat) WASD 不响应，PIE 多人正常 | `GlobalDefaultServerGameMode` 必须也指向 BP_GameMode；之前还是 C++ 裸类导致 DS 端 PC/Pawn 都是 C++ 裸类，蓝图层 IA 字段全 nullptr |
 | EnhancedInput IMC 注册在 DS+Client 模式失败 | `BeginPlay` 时 ULocalPlayer 未就绪；改用 `AcknowledgePossession`（client）+ `OnPossess`（ListenServer）三时机兜底注册 |
 | Python 创建的 UE 对象（modifier 等）保存后丢失 | `unreal.new_object(Class)` 默认 outer = `/Engine/Transient/`，序列化时被丢弃。**必须**传 `outer=父资产`，例如 `unreal.new_object(InputModifierNegate, outer=imc)`，对象才会作为父资产子对象持久化 |
+| UE5 Manny 资产命名陷阱：`SK_Mannequin` 是 USkeleton，`SKM_Manny_Simple` 才是 USkeletalMesh | 反直觉但是 Epic 的命名约定。socket / 骨骼相关脚本要先 `isinstance` 守卫，挂错类型会一直走死路 |
+| `USkeleton.Sockets` Python 读不到，报 "is protected and cannot be read" | UPROPERTY 没标 BlueprintReadOnly。**不要**直接操作 USkeleton.sockets，改走 `USkeletalMesh.AddSocket(socket, bAddToSkeleton=true)`——这条是 BlueprintCallable，bAddToSkeleton 会自动镜像进 Skeleton |
+| `USkeletalMeshSocket` 所有字段 `BlueprintReadOnly`，Python 写不进 | `set_editor_property`、attribute 赋值都被拒，因为 Python 反射走 BP 可写性检查。**唯一解**：C++ 写一�� `UFUNCTION(BlueprintCallable)` 工具函数（如 `UXuanmingSocketTools::AddWeaponSocketToMesh`），裸字段赋值不走反射检查。同理适用于其他 BlueprintReadOnly + EditAnywhere 字段 |
+| UE 5.7 `USkeletalMesh::AddSocket` 严格检查 socket outer 必须是 SkeletalMesh，否则 log error 但 void 返回不抛异常 | `NewObject<USkeletalMeshSocket>(SkeletalMesh)` outer 设 Mesh，传 `bAddToSkeleton=true` 让引擎内部自己复制一份到 Skeleton。**调用后必须**用 `NumSockets()` before/after 校验是否真加进去——UE 这种"void 返回但只 log error"的 API 必须用副作用校验做闸门 |
+| Python `SceneComponent.set_relative_location(loc)` 报 `required argument 'sweep' (pos 2) not found` | 这是运行时 API，sweep/teleport 必填。**编辑 CDO 默认值**走 `set_editor_property("relative_location", ...)` / `set_editor_property("relative_scale3d", ...)`，符合"编辑默认值"语义 |
 
 ## 用户偏好
 
