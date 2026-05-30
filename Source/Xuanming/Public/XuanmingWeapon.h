@@ -6,7 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "XuanmingWeapon.generated.h"
 
-class USkeletalMeshComponent;
+class UStaticMeshComponent;
 class AXuanmingCharacter;
 
 /**
@@ -27,9 +27,9 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	/** 武器外观 */
+	/** 武器外观（M1 阶段用 placeholder static mesh，接正式美术资产时可换 SkeletalMesh 或保留 + 加骨骼组件） */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Xuanming|Weapon")
-	TObjectPtr<USkeletalMeshComponent> WeaponMesh;
+	TObjectPtr<UStaticMeshComponent> WeaponMesh;
 
 	/** 单发伤害 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Xuanming|Weapon|Stats")
