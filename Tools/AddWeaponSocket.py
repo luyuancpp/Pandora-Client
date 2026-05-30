@@ -4,30 +4,24 @@ Xuanming - 给 Mannequin 加 WeaponSocket（M1.3）
 在 UE 编辑器里执行:
   Tools -> Execute Python Script -> 选 Tools/AddWeaponSocket.py
 
-做的事:
-  1. 加载 SKM_Manny_Simple（USkeletalMesh）
-  2. 检查 Mesh / Skeleton 上是否已经存在 WeaponSocket（幂等：有就跳过）
-  3. 构造 USkeletalMeshSocket（outer=Skeleton），父骨骼=hand_r
-  4. 调 SkeletalMesh.add_socket(socket, b_add_to_skeleton=True)
-       → socket 同时进入 Mesh 和 Skeleton 的 sockets 数组
-       → 之后所有共享 SK_Mannequin 骨架的 Mesh 都能用这个 socket
-  5. 保存 Mesh 和 Skeleton
+走的路径:
+  Python -> UXuanmingSocketTools::AddWeaponSocketToMesh(C++ BlueprintCallable)
+  -> 直接裸字段赋值 USkeletalMeshSocket（C++ 端没 BP 可写性检查）
 
-为什么走 USkeletalMesh.add_socket 而不是 USkeleton.sockets:
-  - USkeleton.Sockets 是 UPROPERTY() 但没 BlueprintReadOnly/Write，Python 反射读不到
-  - USkeletalMesh.AddSocket() 是 BlueprintCallable，Python 调得到
-  - bAddToSkeleton=True 让 socket 同时进 Skeleton.sockets[]，效果等价
+为什么不直接在 Python 里构造 USkeletalMeshSocket:
+  UE 5.7 的 USkeletalMeshSocket 所有字段（SocketName/BoneName/RelativeLocation/...）
+  都是 BlueprintReadOnly + EditAnywhere。
+  - set_editor_property → "is read-only and cannot be set"
+  - 直接 attribute 赋值 → 同样被拒
+  C++ 端裸字段赋值不走这套反射检查，是唯一可行路径。
 
-C++ 端 SpawnDefaultWeapon() 写死了 AttachToComponent(GetMesh(), ..., "WeaponSocket")，
-所以名字必须就是 "WeaponSocket"。
+依赖:
+  Source/Xuanming/Public/XuanmingSocketTools.h（M1.3 引入）
+  必须先编 Editor 才能在 Python 里调到 UXuanmingSocketTools。
 
 UE5 Manny 资产命名约定:
   SK_Mannequin       = USkeleton（骨架）
   SKM_Manny_Simple   = USkeletalMesh（蒙皮网格）
-
-经验偏移（之后可在 Editor 里 Skeleton/Mesh 编辑器微调）:
-  Location  = (X=10, Y=4, Z=-2)   往手心前方一点、稍微往拇指侧偏
-  Rotation  = (Roll=0, Pitch=0, Yaw=90)  让枪管朝前（取决于武器 mesh 的 +X 方向）
 """
 
 import unreal
@@ -56,51 +50,39 @@ def main():
         raise RuntimeError(
             f"{SKELETAL_MESH_PATH} 不是 USkeletalMesh（type={type(skm).__name__}）"
         )
-    print(f"[1/5] 加载 SkeletalMesh: {skm.get_path_name()}")
+    print(f"[1/3] 加载 SkeletalMesh: {skm.get_path_name()}")
 
     skeleton = skm.skeleton
     if skeleton is None:
         raise RuntimeError("SKM_Manny_Simple 的 skeleton 字段为空？")
     print(f"      关联 Skeleton: {skeleton.get_path_name()}")
 
-    # 幂等检查：USkeletalMesh.find_socket 会同时查 Mesh 和 Skeleton 的 sockets
-    print(f"[2/5] 幂等��查")
-    existing = skm.find_socket(SOCKET_NAME)
-    if existing is not None:
-        print(f"      已存在 {SOCKET_NAME}（来源={existing.get_outer().get_name()}），跳过")
-        return
-    print(f"      未找到 {SOCKET_NAME}，继续创建")
-
-    # 校验 hand_r 骨骼存在 —— Python 没暴露 find_bone_index 之类 API；
-    # 跳过显式校验，依赖 UE 自身行为：如果父骨骼不存在，Skeleton 编辑器会标黄警告，
-    # 运行时 attach 也会失败并记 LogAnimation 警告，很容易诊断。
-    print(f"[3/5] （跳过骨骼校验，UE5 Python 没暴露 find_bone_index）")
-
-    # 构造 socket。所有字段都是 BlueprintReadOnly + EditAnywhere：
-    #   - set_editor_property 走 BP 可写性检查，会被拒
-    #   - 直接 Python attribute 赋值走 PropertyAccessUtil 的 EditorWrite，UE 5.7 支持
-    print(f"[4/5] 创建 {SOCKET_NAME} 挂到 {PARENT_BONE}")
-    socket = unreal.SkeletalMeshSocket(skeleton)
-    socket.socket_name = SOCKET_NAME
-    socket.bone_name = PARENT_BONE
-    socket.relative_location = SOCKET_LOCATION
-    socket.relative_rotation = SOCKET_ROTATION
-    socket.relative_scale = SOCKET_SCALE
-
-    # 加进 Mesh，b_add_to_skeleton=True 同时写到 Skeleton
-    # 这样所有共享 SK_Mannequin 的 mesh（SKM_Quinn_Simple 等）也能用
-    skm.add_socket(socket, b_add_to_skeleton=True)
-
-    # 保存
-    print(f"[5/5] 保存 Mesh 和 Skeleton")
-    unreal.EditorAssetLibrary.save_loaded_asset(skm)
-    unreal.EditorAssetLibrary.save_loaded_asset(skeleton)
+    # 走 C++ BlueprintCallable，绕�� Python 对 BlueprintReadOnly 字段的写禁止
+    # 函数全名: UXuanmingSocketTools::AddWeaponSocketToMesh
+    # Python 暴露名: unreal.XuanmingSocketTools.add_weapon_socket_to_mesh
+    print(f"[2/3] 调用 C++ AddWeaponSocketToMesh")
+    ok = unreal.XuanmingSocketTools.add_weapon_socket_to_mesh(
+        skeletal_mesh=skm,
+        socket_name=SOCKET_NAME,
+        parent_bone_name=PARENT_BONE,
+        relative_location=SOCKET_LOCATION,
+        relative_rotation=SOCKET_ROTATION,
+        relative_scale=SOCKET_SCALE,
+    )
+    if not ok:
+        raise RuntimeError("AddWeaponSocketToMesh 返回 false，看 LogTemp 错误")
 
     # 验证
     verify = skm.find_socket(SOCKET_NAME)
     if verify is None:
-        raise RuntimeError("add_socket 调用后仍找不到 WeaponSocket，可能 API 行为变化")
-    print(f"      [Verify] find_socket({SOCKET_NAME}) -> 来自 {verify.get_outer().get_name()}")
+        raise RuntimeError("C++ 调用成功但 find_socket 仍找不到，可能 API 行为变化")
+    outer_name = verify.get_outer().get_name()
+    print(f"      [Verify] find_socket({SOCKET_NAME}) -> outer={outer_name}")
+
+    # 保存
+    print(f"[3/3] 保存 Mesh 和 Skeleton")
+    unreal.EditorAssetLibrary.save_loaded_asset(skm)
+    unreal.EditorAssetLibrary.save_loaded_asset(skeleton)
 
     print("\n" + "=" * 60)
     print(f"[Xuanming] {SOCKET_NAME} 已加到 hand_r")
