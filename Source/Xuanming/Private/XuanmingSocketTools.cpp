@@ -53,8 +53,10 @@ bool UXuanmingSocketTools::AddWeaponSocketToMesh(
 		return true;
 	}
 
-	// 构造 socket，outer = Skeleton（这样 AddSocket(bAddToSkeleton=true) 写到 Skeleton 不会复制）
-	USkeletalMeshSocket* Socket = NewObject<USkeletalMeshSocket>(Skeleton);
+	// 构造 socket，outer 必须是 SkeletalMesh —— UE 5.7 的 AddSocket 严格检查
+	// （早期版本可以用 Skeleton 当 outer，5.7 加了硬约束）
+	// 即使 outer 是 Mesh，传 bAddToSkeleton=true 时 AddSocket 内部会复制一份到 Skeleton
+	USkeletalMeshSocket* Socket = NewObject<USkeletalMeshSocket>(SkeletalMesh);
 	if (!Socket)
 	{
 		UE_LOG(LogTemp, Error, TEXT("[XuanmingSocketTools] NewObject<USkeletalMeshSocket> failed"));
@@ -68,8 +70,18 @@ bool UXuanmingSocketTools::AddWeaponSocketToMesh(
 	Socket->RelativeRotation = RelativeRotation;
 	Socket->RelativeScale = RelativeScale;
 
-	// 写入 Mesh + Skeleton
+	// 写入 Mesh + Skeleton。检查返回值（5.7 AddSocket 会拒绝 outer 错的 socket）
+	const int32 NumBefore = SkeletalMesh->NumSockets();
 	SkeletalMesh->AddSocket(Socket, /*bAddToSkeleton=*/ true);
+	const int32 NumAfter = SkeletalMesh->NumSockets();
+
+	if (NumAfter <= NumBefore)
+	{
+		UE_LOG(LogTemp, Error,
+			TEXT("[XuanmingSocketTools] AddSocket 调用没增加 socket 数量（before=%d, after=%d）。看上面 LogSkeletalMesh 错误"),
+			NumBefore, NumAfter);
+		return false;
+	}
 
 	// 标 dirty 让保存机制知道有改动
 	SkeletalMesh->MarkPackageDirty();
