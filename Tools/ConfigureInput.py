@@ -62,14 +62,17 @@ def make_mapping(ia, key_name, modifiers=None):
     return m
 
 
-def make_negate():
-    """构造 Negate modifier (默认 X/Y/Z 全勾, 等价于全维度取反)."""
-    return unreal.new_object(unreal.InputModifierNegate)
+def make_negate(outer):
+    """构造 Negate modifier (默认 X/Y/Z 全勾, 等价于全维度取反).
+
+    outer 必须是 IMC 资产, 否则 modifier 落到 /Engine/Transient/
+    导致 Editor 重启后 modifier 丢失."""
+    return unreal.new_object(unreal.InputModifierNegate, outer=outer)
 
 
-def make_swizzle_yxz():
+def make_swizzle_yxz(outer):
     """构造 Swizzle YXZ modifier."""
-    s = unreal.new_object(unreal.InputModifierSwizzleAxis)
+    s = unreal.new_object(unreal.InputModifierSwizzleAxis, outer=outer)
     s.set_editor_property("order", unreal.InputAxisSwizzle.YXZ)
     return s
 
@@ -108,10 +111,11 @@ def main():
     #   S -> ( 0,-1) 后退: Swizzle YXZ + Negate
     #   D -> (+1, 0) 右移: 无 modifier (X 已经是 +1)
     #   A -> (-1, 0) 左移: Negate
-    mappings.append(make_mapping(ia_move, "W", [make_swizzle_yxz()]))
-    mappings.append(make_mapping(ia_move, "S", [make_swizzle_yxz(), make_negate()]))
+    # Modifier 必须以 imc 为 outer 才能持久化到 .uasset, 否则进 /Engine/Transient/
+    mappings.append(make_mapping(ia_move, "W", [make_swizzle_yxz(imc)]))
+    mappings.append(make_mapping(ia_move, "S", [make_swizzle_yxz(imc), make_negate(imc)]))
     mappings.append(make_mapping(ia_move, "D"))
-    mappings.append(make_mapping(ia_move, "A", [make_negate()]))
+    mappings.append(make_mapping(ia_move, "A", [make_negate(imc)]))
     print("  [IMC] IA_Move: W=Swizzle, S=Swizzle+Negate, D=naked, A=Negate")
 
     # --- IA_Look ---
