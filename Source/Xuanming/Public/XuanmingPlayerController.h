@@ -26,4 +26,13 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	/** 客户端 LocalPlayer 真正就绪后调用 (DS+Client 模式下最可靠的 IMC 注册时机) */
+	virtual void AcknowledgePossession(APawn* P) override;
+	/** 重启已有 LocalPlayer 时也走 IMC 注册 (兼容 ListenServer + 重新 possess) */
+	virtual void OnPossess(APawn* InPawn) override;
+
+private:
+	/** 把 DefaultMappingContext 加到 LocalPlayer 的 EnhancedInputSubsystem, 幂等 */
+	void TryRegisterIMC(const TCHAR* From);
+	bool bIMCRegistered = false;
 };
