@@ -101,10 +101,12 @@ def configure_weapon_bp(bp):
         )
 
     # 赋值 Cube
+    # 注意：set_relative_location / set_relative_scale3d 是运行时 API（要 sweep/teleport 参数）
+    # 对 CDO 直接走 set_editor_property 写字段，更可靠且符合"编辑默认值"语义
     cube = load_or_die(CUBE_MESH_PATH)
     weapon_mesh_comp.set_editor_property("static_mesh", cube)
-    weapon_mesh_comp.set_relative_scale3d(WEAPON_MESH_SCALE)
-    weapon_mesh_comp.set_relative_location(WEAPON_MESH_LOCATION)
+    weapon_mesh_comp.set_editor_property("relative_location", WEAPON_MESH_LOCATION)
+    weapon_mesh_comp.set_editor_property("relative_scale3d", WEAPON_MESH_SCALE)
     print(f"  [Mesh] WeaponMesh.StaticMesh = {CUBE_MESH_PATH}")
     print(f"         scale    = {WEAPON_MESH_SCALE}")
     print(f"         location = {WEAPON_MESH_LOCATION}")
