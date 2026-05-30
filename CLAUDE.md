@@ -133,16 +133,68 @@ UE 5.7.4 release 自带的 `Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTo
 
 4. 角色 Mesh 上加一个 `WeaponSocket`（武器挂点），否则 `SpawnDefaultWeapon` 时挂载失败。
 
-## 待办（用户要求"先记住"，按指令再做）
+## 当前进度（2026-05-30）
 
-1. 角色 Mesh + 武器 Socket 配置（需美术资源）
-2. 测试关卡（用 OpenWorld 或简单建一个）
-3. EOS（Epic Online Services）公网匹配集成（用户需先注册 Epic 开发者，提供 ProductID/SandboxID）
-4. 队伍/阵营 + 重生流程 + 战斗结算
-5. GAS（Gameplay Ability System）——仙道风"招式"系统
-6. 后端服务（Go/Java 账号 + 匹配服）
-7. CI/CD（GitHub Actions 自动编译 DS）
-8. 商标查询（"玄冥"在中国商标网）+ 域名注册（用户自己做）
+### 已完成里程碑
+
+**M0 完成** (2026-05-23/24)：DS 联机骨架已通
+- ✅ M0.1-M0.3 工业级 Content 目录 + L_Whitebox_01 关卡 + Project Settings 默认地图
+- ✅ M0.4 PIE 单机不崩
+- ✅ M0.5 真 DS 进程在 0.0.0.0:7777 监听
+- ✅ M0.6 2 个 Client 同时连入，GameMode::PostLogin 报 Total: 2
+
+**M1.1 完成** (2026-05-29)：白盒角色已就位
+- ✅ Mannequin 资产复制到 `Content/Characters/Mannequins/` (49 个 .uasset, 93MB)
+- ✅ ABP_Unarmed 编译通过 (141ms)
+- ✅ BP_XuanmingCharacter 蓝图：Mesh=SKM_Manny_Simple, AnimClass=ABP_Unarmed
+  - Mesh Transform: Location=(0,0,-88), Rotation=(0,0,-90)（FPS 标准朝向）
+  - Mesh.bOwnerNoSee=true（第一人称隐藏自己，业界惯例）
+- ✅ BP_XuanmingGameMode + BP_XuanmingPlayerController 蓝图链路完整
+
+**M1.2 完成** (2026-05-29)：EnhancedInput 全部接通
+- ✅ 5 个 IA：Move/Look (Axis2D) + Jump/Fire/Crouch (bool)
+- ✅ IMC_Default 配 8 条 mapping，WASD 4 方向都对
+- ✅ 用 `Tools/ConfigureInput.py` Python 脚本一键配置（避免手动配 Modifier 出错）
+
+### M1 剩余子里程碑（FPS PoC 路线图）
+
+```
+M1.3 BP_Weapon_AK + 武器 Socket             1-2 天
+  - SK_Mannequin 骨架右手骨骼加 WeaponSocket
+  - 建 BP_Weapon_AK 蓝图（继承 AXuanmingWeapon）
+  - 挂 placeholder Cube 或引擎自带 SM_AssaultRifle
+  - BP_XuanmingCharacter.DefaultWeaponClass = BP_Weapon_AK
+  - 验证：开火 LineTrace 命中 + 减血同步
+
+M1.4 UMG HUD（替代 C++ Canvas）            1-2 天
+  - WBP_PlayerHUD：血条、弹药、准星
+  - WBP_KillFeed：击杀飘字
+  - PlayerController BeginPlay AddToViewport
+  - 降级 XuanmingHUD C++ 类为 debug-only
+
+M1.5 GAS 框架 + 玄冥冰咒示例技能           3-5 天
+  - 启用 GameplayAbilities 插件（uproject + Build.cs）
+  - Character 加 ASC + AttributeSet (HP/Mana/Speed/Damage)
+  - GA_XuanmingFrostCurse：按 Q 释放，对前方目标施加 GE_Slow（速度 -50% × 3s）
+  - 这是仙道 vs 现代 FPS 反差的差异化核心
+```
+
+### M2-M5 后续大节点（M1 完成后规划，不到时不动）
+
+- **M2 可内测**：匹配服 + 账号 + 反��弊 + 数据上报（1-2 月）
+- **M3 可外测**：CI/CD + Linux DS + 大厅 + 商城 + 多地图（2-3 月）
+- **M4 可上线**：性能调优 + 反外挂 + 风控 + 客服后台（3-6 月）
+- **M5 运营**：赛季 + 活动 + 内容更新管线（持续）
+
+### 长期挂账（用户自己做的事）
+
+1. EOS（Epic Online Services）公网匹配集成（需注册 Epic 开发者拿 ProductID/SandboxID）
+2. 后端服务（Go/Java 账号 + 匹配服）
+3. CI/CD（GitHub Actions 自动编译 DS）
+4. 商标查询（"玄冥"在中国商标网）+ 域名注册
+5. 美术外包对接（M2 阶段换正式角色资产，按 SK_Mannequin 标准骨架做就零改动替换）
+6. **Git LFS**：`.gitattributes` 已配 `*.uasset filter=lfs`，但本机 git-lfs 未装。
+   M2 前补装：`winget install GitHub.GitLFS` → `git lfs install` → `git lfs migrate import --include="*.uasset,*.umap"`
 
 ## 项目设计原则
 
