@@ -1,6 +1,6 @@
-# Xuanming（玄冥）— Claude Code 上下文
+# Xuanming（玄冥）— Codex 上下文
 
-> 这个文件是给 Claude Code 看的项目上下文摘要。新会话开始时会自动读入。
+> 这个文件是给 Codex 看的项目上下文摘要。新会话开始时会自动读入。
 > 用户视角的完整文档在 `README.md`。
 
 ---
@@ -21,8 +21,8 @@
 |---|---|
 | `F:\work\UnrealEngine` | UE 5.7.4 源码版引擎（**绝对不要改任何 tracked 文件**） |
 | `F:\work\Xuanming` | 项目根目录（本仓库） |
-| `F:\work\Xuanming\.claude` | Claude Code 会话状态（已 gitignored） |
-| `F:\work\UnrealEngine\.claude` | **Junction → Xuanming/.claude**，引擎里物理上不存在真实数据 |
+| `F:\work\Xuanming\.Codex` | Codex 会话状态（已 gitignored） |
+| `F:\work\UnrealEngine\.Codex` | **Junction → Xuanming/.Codex**，引擎里物理上不存在真实数据 |
 
 ## 最高指令：不动引擎源码
 
@@ -31,8 +31,8 @@
 执行这条规则的机制：
 
 1. **`Tools/CheckEngineUntouched.bat`** —— 每次构建前检查 `git status --porcelain` 过滤 `??` 之外的项，发现就 abort
-2. **Junction**：`UnrealEngine/.claude → Xuanming/.claude`，让 Claude Code 写入透明重定向
-3. **pre-commit hook**：装在 `UnrealEngine/.git/hooks/pre-commit`，阻断任何 `.claude/` 路径的 commit
+2. **Junction**：`UnrealEngine/.Codex → Xuanming/.Codex`，让 Codex 写入透明重定向
+3. **pre-commit hook**：装在 `UnrealEngine/.git/hooks/pre-commit`，阻断任何 `.Codex/` 路径的 commit
 4. **`Tools/SetupEngineGuards.bat`** 一键复现（幂等）
 5. **`global.json` 放在项目目录**：dotnet 从工作目录向上查找，所以引擎仓库**不需要**也**不要**放 global.json
 
@@ -284,7 +284,7 @@ M1.x KillFeed（M1.5 后插入）                1 天
 
 | 用途 | 性能损耗 | 项目里怎么用 |
 |---|---|---|
-| 只挂资产 + 改 Default 值（Mesh / 动画蓝图 / 武器 class / 血量上限） | **0**，运行时和 C++ default 完全相同 | ✅ CLAUDE.md 列的 4 个蓝图都是这种 |
+| 只挂资产 + 改 Default 值（Mesh / 动画蓝图 / 武器 class / 血量上限） | **0**，运行时和 C++ default 完全相同 | ✅ AGENTS.md 列的 4 个蓝图都是这种 |
 | EventGraph 写逻辑（Tick 里连节点算伤害） | VM 解释，比 C++ 慢 5-10 倍 | ❌ 不要这么做，逻辑全在 C++ |
 | AnimGraph 动画蓝图 | 高度优化，C++ 写不会更快 | ✅ 必须用 |
 | 蓝图调 C++ 函数（UFUNCTION BlueprintCallable） | 单次 ~200-300ns 额外开销 | 可忽略 |

@@ -20,7 +20,9 @@ public class Xuanming : ModuleRules
 			"NetCore",
 			"UMG",
 			"Slate",
-			"SlateCore"
+			"SlateCore",
+			"FieldNotification",
+			"ModelViewViewModel"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]

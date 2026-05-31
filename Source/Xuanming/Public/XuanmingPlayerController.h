@@ -7,6 +7,8 @@
 #include "XuanmingPlayerController.generated.h"
 
 class UInputMappingContext;
+class UUserWidget;
+class UXuanmingPlayerViewModel;
 
 /**
  * 玄冥 PlayerController - 玩家的输入和 UI 入口
@@ -24,8 +26,29 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Xuanming|Input")
 	TObjectPtr<UInputMappingContext> DefaultMappingContext;
 
+	/** 玩家 HUD Widget 类（在 BP 里指派 WBP_PlayerHUD） */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Xuanming|UI")
+	TSubclassOf<UUserWidget> HUDWidgetClass;
+
+	/** 运行时的 HUD 实例（仅本地客户端） */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Xuanming|UI")
+	TObjectPtr<UUserWidget> HUDWidget;
+
+	/** 运行时的 HUD ViewModel (MVVM 数据源, 仅本地客户端) */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Xuanming|UI")
+	TObjectPtr<UXuanmingPlayerViewModel> PlayerViewModel;
+
+	/**
+	 * WBP 里 MVVM 面板配置的 ViewModel 名字 (Add Viewmodel 时填写).
+	 * 必须和 WBP 里 ViewModel 的 Name 字段完全一致, 默认 "PlayerViewModel".
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Xuanming|UI")
+	FName PlayerViewModelName = TEXT("XuanmingPlayerViewModel");
+
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void PlayerTick(float DeltaTime) override;
 	/** 客户端 LocalPlayer 真正就绪后调用 (DS+Client 模式下最可靠的 IMC 注册时机) */
 	virtual void AcknowledgePossession(APawn* P) override;
 	/** 重启已有 LocalPlayer 时也走 IMC 注册 (兼容 ListenServer + 重新 possess) */
@@ -35,4 +58,14 @@ private:
 	/** 把 DefaultMappingContext 加到 LocalPlayer 的 EnhancedInputSubsystem, 幂等 */
 	void TryRegisterIMC(const TCHAR* From);
 	bool bIMCRegistered = false;
+
+	/** CreateWidget(HUDWidgetClass) + AddToViewport + 注入 ViewModel, 幂等. 仅本地客户端. */
+	void TryCreateHUD(const TCHAR* From);
+
+	/** 把 PlayerViewModel 推到 HUDWidget 的 MVVM View, 幂等返回 true 表示成功 */
+	bool TryInjectViewModel(const TCHAR* From);
+	bool bViewModelInjected = false;
+
+	/** 每帧把 Pawn/Weapon 状态推到 ViewModel (Setter 内部比较新旧值, 不变就不广播) */
+	void PushStateToViewModel();
 };
