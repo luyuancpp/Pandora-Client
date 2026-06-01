@@ -4,6 +4,7 @@
 #include "XuanmingCharacter.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/DamageEvents.h"
+#include "EngineUtils.h"
 #include "Net/UnrealNetwork.h"
 #include "DrawDebugHelpers.h"
 #include "TimerManager.h"
@@ -130,13 +131,50 @@ void AXuanmingWeapon::Server_Fire_Implementation(const FVector& EyeLocation, con
 	FHitResult Hit;
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(XuanmingWeapon), true, this);
 	Params.AddIgnoredActor(GetOwner());
-	const bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, EyeLocation, End, ECC_Visibility, Params);
+	// 用 MultiTrace 检查所有命中物 (诊断: 看视线穿过了什么)
+	TArray<FHitResult> AllHits;
+	GetWorld()->LineTraceMultiByChannel(AllHits, EyeLocation, End, ECC_Pawn, Params);
+	for (const FHitResult& H : AllHits)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Xuanming][Fire][Server] MultiTrace ECC_Pawn 命中: %s 组件=%s"),
+			*GetNameSafe(H.GetActor()),
+			*GetNameSafe(H.GetComponent()));
+	}
+
+	// 实际伤害判定: 改用 ECC_Pawn 而非 ECC_Visibility
+	// ECC_Visibility 是相机/光照的视线遮挡通道, Capsule 上常被设为 Ignore;
+	// FPS 子弹打人应该用 ECC_Pawn (Pawn collision profile 默认 Block).
+	const bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, EyeLocation, End, ECC_Pawn, Params);
 
 	UE_LOG(LogTemp, Warning,
 		TEXT("[Xuanming][Fire][Server] Trace bHit=%d HitActor=%s Ammo剩=%d"),
 		bHit ? 1 : 0,
 		bHit ? *GetNameSafe(Hit.GetActor()) : TEXT("(none)"),
 		CurrentAmmo);
+
+	// 诊断: 打印 trace 起点/终点 + 视线方向, 帮定位为啥打不中 Dummy
+	UE_LOG(LogTemp, Warning,
+		TEXT("[Xuanming][Fire][Server] Trace 详情 EyeLoc=%s AimDir=%s End=%s"),
+		*EyeLocation.ToCompactString(),
+		*AimDirection.GetSafeNormal().ToCompactString(),
+		*End.ToCompactString());
+
+	// 诊断: 列出场景里所有 BP_XuanmingCharacter 的位置 (除了自己)
+	for (TActorIterator<AXuanmingCharacter> It(GetWorld()); It; ++It)
+	{
+		AXuanmingCharacter* Ch = *It;
+		if (Ch && Ch != GetOwner())
+		{
+			const FVector ChLoc = Ch->GetActorLocation();
+			const float Dist = FVector::Dist(EyeLocation, ChLoc);
+			const FVector ToTarget = (ChLoc - EyeLocation).GetSafeNormal();
+			const float DotProd = FVector::DotProduct(AimDirection.GetSafeNormal(), ToTarget);
+			UE_LOG(LogTemp, Warning,
+				TEXT("[Xuanming][Fire][Server] 场景中 %s 位置=%s 距离=%.0f 视线点积=%.2f (1.0=正前方)"),
+				*Ch->GetName(), *ChLoc.ToCompactString(), Dist, DotProd);
+		}
+	}
 
 	if (bHit && Hit.GetActor())
 	{
