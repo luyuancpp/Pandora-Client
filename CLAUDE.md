@@ -193,39 +193,32 @@ UE 5.7.4 release 自带的 `Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTo
 - ✅ PIE 验证：右手有 Cube placeholder AK，鼠标左键开火出 DrawDebugLine
 - ⚠️ 准星和命中反馈缺失（白盒角色没参照物难瞄）→ M1.4 UMG HUD 解决
 
-**M1.4 代码完成** (2026-05-30)：UMG HUD 走 **MVVM 路线**，链路就绪，待用户编 Editor + 跑脚本 + Designer 手搭 + 配 MVVM
+**M1.4 完成** (2026-06-01)：UMG HUD 走 **MVVM 路线**，端到端验证通过（自伤 + 打 Dummy 都扣血，HUD 实时刷新）
 - ✅ C++ `AXuanmingHUD` 降级为占位（DrawHUD 清空，类保留作 GameMode HUDClass 默认指派）
 - ✅ `Xuanming.uproject` 启用 `ModelViewViewModel` 插件
 - ✅ `Source/Xuanming/Xuanming.Build.cs` 加 `ModelViewViewModel` + `FieldNotification` 模块依赖
 - ✅ C++ 新增 `UXuanmingPlayerViewModel : UMVVMViewModelBase`：
   - 4 个 `FieldNotify` 字段：`Health` / `MaxHealth` / `CurrentAmmo` / `MagazineSize`
-    （Setter 用 `UE_MVVM_SET_PROPERTY_VALUE` 宏，自动比较新旧值 + 不变就不广播）
+    （Setter 用 `UE_MVVM_SET_PROPERTY_VALUE` 宏 + `UE_MVVM_BROADCAST_FIELD_VALUE_CHANGED` 显式广播派生属性）
   - 3 个 `FieldNotify` 派生 UFUNCTION：`GetHealthPercent` / `GetHealthText` / `GetAmmoText`
-    （用 `meta=(FieldNotifyDependencies="Health,MaxHealth")` 让 MVVM 编译器跟踪依赖自动重算）
 - ✅ C++ `AXuanmingPlayerController`：
-  - 加 `HUDWidgetClass` + `HUDWidget` + `PlayerViewModel` + `PlayerViewModelName="PlayerViewModel"` 字段
-  - `TryCreateHUD(From)` 复用 IMC "三时机兜底" 模式 (`BeginPlay` / `AcknowledgePossession` / `OnPossess`)
-    + 创建 widget 后立即 `NewObject<UXuanmingPlayerViewModel>(this)` + `TryInjectViewModel`
-  - `TryInjectViewModel`：通过 `UMVVMSubsystem::GetViewFromUserWidget(HUDWidget)` 拿 `UMVVMView`，
-    再 `View->SetViewModel(PlayerViewModelName, PlayerViewModel)`
-  - `PlayerTick` 每帧 `PushStateToViewModel`（把 Pawn.Health / Weapon.CurrentAmmo 推到 ViewModel）；
-    依赖 `SetPropertyValue` 内部新旧值比较，**未变化时零广播开销**
-  - `EndPlay` 清理 `HUDWidget->RemoveFromParent()` + `PlayerViewModel = nullptr`
-- ✅ `Tools/CreateHUDWidgets.py` 简化为：
-  - 幂等创建 `/Game/UI/WBP_PlayerHUD`（空控件树）
-  - 自动配 `BP_XuanmingPlayerController.HUDWidgetClass = WBP_PlayerHUD.GeneratedClass`
-  - main() 末尾打印详尽 Designer + MVVM 操作指南（替代原 WidgetTree 自动化，已确认 UE 5.7 反射搞不定）
-- ⏳ 待用户操作：
-  1. `GenerateProjectFiles.bat`（uproject 加了插件，需重生 sln）
-  2. VS 右键 `Xuanming` 项目 Build
-  3. `LaunchEditor.bat` 启动 Editor（首次编 MVVM 插件 1-2 分钟）
-  4. `Tools → Execute Python Script → Tools/CreateHUDWidgets.py`
-  5. **Designer 拖控件树**（5 分钟）：Crosshair / HealthBar / HealthText / AmmoText 四个控件 + 锚点位置（脚本输出指南有详细坐标）
-  6. **MVVM 面板配置**（5 分钟）：`Window → View Bindings`：
-     - 加 ViewModel：Class=`XuanmingPlayerViewModel`、Name=`PlayerViewModel`、Creation Type=`Manual`
-     - 加 3 条 Binding：`HealthBar.Percent ← HealthPercent`、`HealthText.Text ← HealthText`、`AmmoText.Text ← AmmoText`
-  7. PIE 验证：准星 + 血条 + 弹药、开火 AMMO 递减、受击血条短缩
-- ⚠️ KillFeed 挂账：移到 M1.5 之后单独做（需 GameMode 击杀广播 + Multicast 事件 + 队伍判定）
+  - `HUDWidgetClass` + `HUDWidget` + `PlayerViewModel` + `PlayerViewModelName` 字段
+  - `TryCreateHUD` / `TryInjectViewModel` 复用 IMC "三时机兜底" 模式
+  - `PlayerTick` 每帧 `PushStateToViewModel`（轮询 Pawn.Health/Weapon.CurrentAmmo 推到 ViewModel）
+  - `ApplyFPSInputMode`：HUDWidget->SetIsFocusable(false) + InputModeGameOnly + ViewportClient capture 三件套
+    + `LookConsumeFramesAfterModeSwitch=5` 兜底吞首次 mouse capture 多帧大 delta
+- ✅ C++ `AXuanmingCharacter::XmDamageSelf(Amount)` UFUNCTION(Exec) —— PIE 控制台 `XmDamageSelf 50` 验证 MVVM
+- ✅ Weapon C++ 修复：
+  - `HandleFire` client 端不再预写 LastFireTime（修死锁）
+  - `LineTrace` 改 ECC_Pawn（从 ECC_Visibility，修打不中 Character）
+- ✅ `Content/UI/WBP_PlayerHUD`：Designer 手搭 4 控件 + MVVM `Window → View Bindings` 配 ViewModel + 3 条 Binding
+- ✅ PIE 端到端验证：
+  - 控制台 `XmDamageSelf 50` → HUD 100/100 → 50/50 ✓
+  - 朝 Dummy 开火 → Health 100→75→50→25→0 → `Character died` ✓
+- ⚠️ KillFeed 挂账：移到 M1.5 之后单独做
+- ⚠️ 死亡-重生系统挂账：M1.x 单独做（HandleDeath 应禁碰撞 + 销毁/隐藏，否则已死 Dummy 还能被打）
+- ⚠️ Dummy 测试角色 **不**进 `L_Whitebox_01` 关卡：smoke test 关卡保持干净，Dummy 由后续 M1.x 测试关卡承载
+- ⚠️ M1.4 验证完成时把诊断日志全部清掉，只保留里程碑级别（IMC/HUD/ViewModel 注入成功 + Character died）
 
 **为什么走 MVVM 而不是函数 Binding**（决策记录）：
 - 函数 Binding 是 UE 官方标记的"性能陷阱"——每帧 Tick 调用，10 个 binding × 60fps = 600 次/秒 蓝图 VM 调用
@@ -243,10 +236,18 @@ M1.5 GAS 框架 + 玄冥冰咒示例技能           3-5 天
   - GA_XuanmingFrostCurse：按 Q 释放，对前方目标施加 GE_Slow（速度 -50% × 3s）
   - 这是仙道 vs 现代 FPS 反差的差异化核心
 
+M1.x 死亡-重生系统（M1.5 后插入）         1-2 天
+  - HandleDeath 禁 capsule collision + 隐藏/销毁 actor
+  - GameMode 延迟重生 (3s) + 通知 PlayerState K/D
+  - 现状: 已死 Character 还能被打、Health(after)=0 一直触发, 不影响 M1.4 验证但要修
+
 M1.x KillFeed（M1.5 后插入）                1 天
   - GameMode 加 OnPlayerKilled 委托 + Multicast 广播 (Killer/Victim/Weapon)
   - WBP_KillFeed (VerticalBox 右上, 飘字 + 3s 淡出)
-  - PlayerController 创建第二个 widget 并 AddToViewport
+
+M1.x 测试关卡 L_Sandbox_01                 0.5 天
+  - 单独的 Dummy 训练场, 拖一排 BP_XuanmingCharacter 当靶子
+  - L_Whitebox_01 保持干净 (DS smoke test 用)
 ```
 
 ### M2-M5 后续大节点（M1 完成后规划，不到时不动）
@@ -342,6 +343,12 @@ M1.x KillFeed（M1.5 后插入）                1 天
 | Python `SceneComponent.set_relative_location(loc)` 报 `required argument 'sweep' (pos 2) not found` | 这是运行时 API，sweep/teleport 必填。**编辑 CDO 默认值**走 `set_editor_property("relative_location", ...)` / `set_editor_property("relative_scale3d", ...)`，符合"编辑默认值"语义 |
 | UE 5.7 `WidgetBlueprint.WidgetTree` 是 protected 字段，Python `get_editor_property("WidgetTree")` 抛 "is protected and cannot be read" | 同 `USkeleton.Sockets` 那类反射坑。理论上可写 C++ `UXuanmingUITools::GetWidgetTree` 工具函数绕开（同 SocketTools 套路），但**UMG 控件树本来就是高频迭代品**（美术每天调样式），Epic 官方 *UMG Best Practices* 也明确推荐 Designer 手搭——脚本只建 WBP + 链 PC.HUDWidgetClass，控件树交给用户 5 分钟手点。这条"不修"是设计决策不是妥协 |
 | UMG 函数 Binding 性能陷阱 | `HealthBar.Percent → Bind Function` 每帧 Tick 调用（10 个 binding × 60fps = 600 次/秒蓝图 VM）。**全项目禁用**，改 MVVM (`UMVVMViewModelBase` + `UE_MVVM_SET_PROPERTY_VALUE` ���)，只在数据变化时广播 |
+| FPS 子弹用 ECC_Visibility 通道打不中 Pawn | UE5 Pawn 默认 collision profile 对 `ECC_Visibility` = **Ignore**（这样玩家不会挡住光照视线），导致 LineTrace ECC_Visibility 直接穿过 Character capsule。**FPS 子弹必须用 `ECC_Pawn`**（profile 默认 Block），不要用 ECC_Visibility。表现：视线点积 0.99 几乎完美对准，但 bHit=0 |
+| Weapon::HandleFire client 端预写 LastFireTime 自卡死锁 | `HandleFire` 在 client 路径写 `LastFireTime=Now` 后同帧调 `Server_Fire` RPC，进入 `Server_Fire_Implementation` 的 `CanFire()` 检查 `Now-LastFireTime=0 < Interval` → 永远 reject。**修法**：client 端只做 UI 预测（CurrentAmmo--），CD 检查只在 server 上做，LastFireTime 只能由 server 在真实 fire 时写 |
+| FPS 首次点击 viewport 镜头瞬间朝下脚下 | UE 5.7 PIE 模式下，HUDWidget AddToViewport 默认 IsFocusable=true 抢焦点 + 首次点击触发 mouse capture 重置，期间累积的 mouse delta（≈30）灌进 `Input_Look`，`AddControllerPitchInput` 被 clamp 到 -89° 即俯视脚下。**修法（4 层防御）**：(1) `HUDWidget->SetIsFocusable(false)` 阻止 UMG 抢焦点；(2) `SetInputModeGameOnly`（不要带 `SetConsumeCaptureMouseDown(true)`，那反而触发 capture 重置）；(3) ViewportClient 三件套：`CapturePermanently_IncludingInitialMouseDown` + `LockAlways` + `HideCursorDuringCapture`；(4) `FSlateApplication::SetAllUserFocusToGameViewport()` 提前给焦点。即使 4 层都做了，UE 5.7.4 仍可能分多帧灌 delta，所以再加 `LookConsumeFramesAfterModeSwitch=5` 兜底吞前 5 帧 Look 输入 |
+| MVVM `UFUNCTION(Exec)` 是 PIE 控制台调试 BlueprintCallable 的最干净方式 | 想在 PIE 控制台触发 BlueprintCallable，**不要用 `ke * FuncName Args`**——`ke` 只能调 BlueprintCallable，且对未注册的 actor 名 `0 instances succeeded`。**改用 `UFUNCTION(Exec)`**：函数自动注册为控制台命令，PIE 里直接输入 `XmDamageSelf 50` 调用，最稳。注意：Exec 只对 PlayerController/Pawn/Character 等 Outer Auto 类有效 |
+| UE5 Character `FDamageEvent` 前置声明，cpp 用要 include | `Actor.h` 里 `TakeDamage` 用 `struct FDamageEvent const&` 前置声明，cpp 里要构造 `FDamageEvent DummyEvent` 必须 `#include "Engine/DamageEvents.h"`。错过会报 `error C2079: "DummyEvent" 使用未定义的 struct "FDamageEvent"` |
+| UE Editor 进程占用 .uasset/.umap 文件，git checkout 报 "Invalid argument" | 编辑器开着的时候 git 不能替换它锁着的文件。**解决**：完全关闭 Editor（不仅 PIE，整个 UnrealEditor.exe 进程都要关），再跑 git checkout / reset --hard。任务管理器确认无 UnrealEditor.exe 残留 |
 
 ## 用户偏好
 
@@ -350,6 +357,17 @@ M1.x KillFeed（M1.5 后插入）                1 天
 - 重视"上线运营"的工程严谨性，但理解一个人/小团队做不到大厂规模
 - 对破坏性操作很谨慎（之前 git reset 之前我特意确认过）
 - 不喜欢长篇大论的修辞，喜欢清单和表格
+
+## Commit 规范（避免我重蹈覆辙）
+
+| 类型 | 处理 |
+|---|---|
+| C++ 代码改动 | 一个 commit，单一职责 |
+| .uasset 蓝图/WBP 资产 | 单独 commit，不和代码混 |
+| .umap 关卡资产 | 单独 commit |
+| **测试用 actor**（Dummy / 训练靶 / 调试 NPC） | **不进正式关卡**（如 `L_Whitebox_01` smoke test 关），放专门的 `L_Sandbox_*` 测试关卡 |
+| CLAUDE.md / 文档 | 单独 commit |
+| 调试日志 | 验证完成立刻 commit 清掉，不留生产环境
 
 ## 当前未解决问题
 
