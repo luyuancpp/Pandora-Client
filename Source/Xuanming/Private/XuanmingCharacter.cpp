@@ -2,6 +2,7 @@
 
 #include "XuanmingCharacter.h"
 #include "XuanmingWeapon.h"
+#include "XuanmingPlayerController.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -107,6 +108,31 @@ void AXuanmingCharacter::Input_Move(const FInputActionValue& Value)
 void AXuanmingCharacter::Input_Look(const FInputActionValue& Value)
 {
 	const FVector2D Axis = Value.Get<FVector2D>();
+
+	// 兜底吞掉切 InputMode 后接下来 N 帧 Look 输入, 避免 mouse capture 重置时
+	// 累积的大 delta 把镜头瞬间拉到脚下/天空. 详见 PC::ApplyFPSInputMode 注释.
+	// 实测 UE 5.7.4 把异常 delta 分多帧灌入, 单帧吞不够.
+	if (AXuanmingPlayerController* PC = Cast<AXuanmingPlayerController>(Controller))
+	{
+		if (PC->LookInputConsumeFrames > 0)
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("[Xuanming][Look] CONSUMED frame=%d Axis=(%.3f, %.3f)"),
+				PC->LookInputConsumeFrames, Axis.X, Axis.Y);
+			PC->LookInputConsumeFrames--;
+			return;
+		}
+	}
+
+	// 诊断日志: 只打 |delta| > 5 的, 避免刷屏. 正常鼠标转头 delta 在 0.1~3 之间.
+	// 如果看到 |delta| > 10 -> 就是首次 capture 异常 delta 漏过来了
+	if (FMath::Abs(Axis.X) > 5.0f || FMath::Abs(Axis.Y) > 5.0f)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Xuanming][Look] BIG DELTA: Axis=(%.3f, %.3f) -> YawDelta=%.3f PitchDelta=%.3f"),
+			Axis.X, Axis.Y, Axis.X, -Axis.Y);
+	}
+
 	AddControllerYawInput(Axis.X);
 	AddControllerPitchInput(-Axis.Y); // 反转 Y 轴，符合 FPS 习惯
 }

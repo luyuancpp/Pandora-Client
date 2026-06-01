@@ -68,4 +68,26 @@ private:
 
 	/** 每帧把 Pawn/Weapon 状态推到 ViewModel (Setter 内部比较新旧值, 不变就不广播) */
 	void PushStateToViewModel();
+
+	/** 设 GameOnly 输入模式 + 隐藏鼠标. 幂等, 多时机兜底. */
+	void ApplyFPSInputMode();
+
+public:
+	/**
+	 * 兜底吞掉切 InputMode 后接下来的 N 帧 Look 输入.
+	 * 根因方案 (ApplyFPSInputMode 里的 capture 配置) 不能完全消除首次 mouse delta,
+	 * 实测 UE 5.7.4 会把异常 delta 分多帧灌入 (第 1 帧小, 第 2 帧 |Axis|≈30, 第 3 帧 ≈8),
+	 * 所以一次性吞前几帧最稳.
+	 * Character::Input_Look 第一行检查这个值, > 0 就跳过并自减.
+	 */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Xuanming|Input")
+	int32 LookInputConsumeFrames = 0;
+
+	/** 切 InputMode 后吞掉的 Look 帧数. 默认 5 帧 (~0.08s @ 60fps), 玩家无感. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Xuanming|Input")
+	int32 LookConsumeFramesAfterModeSwitch = 5;
+
+private:
+	/** 诊断: PlayerTick 前 10 帧打日志追踪 mouse capture 时序 */
+	int32 DiagnosticTickCount = 0;
 };
