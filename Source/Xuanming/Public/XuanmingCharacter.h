@@ -90,4 +90,17 @@ protected:
 
 	/** 死亡处理（仅服务器） */
 	virtual void HandleDeath();
+
+public:
+	/**
+	 * 调试用自伤命令: PIE 控制台直接输入 "XmDamageSelf 50" 即可对自己造成 50 伤害.
+	 * Exec 关键字让函数自动注册为控制台命令.
+	 * 仅本地客户端调用, 内部走 ServerRPC 让 server 真实扣血.
+	 */
+	UFUNCTION(Exec)
+	void XmDamageSelf(float Amount = 25.f);
+
+private:
+	UFUNCTION(Server, Reliable)
+	void Server_DamageSelf(float Amount);
 };

@@ -9,6 +9,7 @@
 #include "EnhancedInputComponent.h"
 #include "InputAction.h"
 #include "Net/UnrealNetwork.h"
+#include "Engine/DamageEvents.h"
 
 AXuanmingCharacter::AXuanmingCharacter()
 {
@@ -251,4 +252,19 @@ void AXuanmingCharacter::HandleDeath()
 {
 	UE_LOG(LogTemp, Warning, TEXT("[Xuanming] Character died: %s"), *GetName());
 	// TODO: 通知 GameMode、播放死亡动画、延迟重生
+}
+
+void AXuanmingCharacter::XmDamageSelf(float Amount)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[Xuanming][DamageSelf] 控制台触发 self-damage Amount=%.1f IsLocal=%d HasAuth=%d"),
+		Amount, IsLocallyControlled() ? 1 : 0, HasAuthority() ? 1 : 0);
+	// 走 ServerRPC, 让 server 真实扣血 (走标准 TakeDamage 链路, 验证 MVVM 推送)
+	Server_DamageSelf(Amount);
+}
+
+void AXuanmingCharacter::Server_DamageSelf_Implementation(float Amount)
+{
+	// 在 server 上调 TakeDamage, 走完整伤害链路
+	FDamageEvent DummyEvent;
+	TakeDamage(Amount, DummyEvent, nullptr, this);
 }
