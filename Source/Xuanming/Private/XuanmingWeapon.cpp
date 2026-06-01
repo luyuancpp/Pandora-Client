@@ -86,9 +86,11 @@ void AXuanmingWeapon::HandleFire()
 		AimDir = FMath::VRandCone(AimDir, FMath::DegreesToRadians(BulletSpreadDegrees));
 	}
 
-	LastFireTime = GetWorld()->GetTimeSeconds();
-
 	// 本地立刻递减弹药用于 UI 预测（服务器会同步真值回来覆盖）
+	// 注意: 不要预先写 LastFireTime - PIE Standalone/ListenServer 下 client 和 server
+	// 是同一个 weapon 实例, client 写了 LastFireTime=Now 后, 同帧 RPC 进入
+	// Server_Fire_Implementation 检查 Now-LastFireTime=0 < Interval, CD reject!
+	// LastFireTime 只能由 Server_Fire_Implementation 在真实 fire 时写.
 	CurrentAmmo = FMath::Max(0, CurrentAmmo - 1);
 
 	// 真实命中判定走服务器
@@ -106,12 +108,21 @@ bool AXuanmingWeapon::Server_Fire_Validate(const FVector& EyeLocation, const FVe
 
 void AXuanmingWeapon::Server_Fire_Implementation(const FVector& EyeLocation, const FVector& AimDirection)
 {
-	if (!CanFire())
+	const float Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+	const float Interval = GetFireInterval();
+	const float Elapsed = Now - LastFireTime;
+	const bool bCDOk = Elapsed >= Interval;
+	const bool bAmmoOk = CurrentAmmo > 0;
+
+	if (!bCDOk || !bAmmoOk)
 	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Xuanming][Fire][Server] CanFire=false: CD=%d (Elapsed=%.3f >= %.3f) Ammo=%d (Cur=%d)"),
+			bCDOk ? 1 : 0, Elapsed, Interval, bAmmoOk ? 1 : 0, CurrentAmmo);
 		return;
 	}
 
-	LastFireTime = GetWorld()->GetTimeSeconds();
+	LastFireTime = Now;
 	CurrentAmmo = FMath::Max(0, CurrentAmmo - 1);
 
 	const FVector End = EyeLocation + AimDirection.GetSafeNormal() * Range;
@@ -121,6 +132,12 @@ void AXuanmingWeapon::Server_Fire_Implementation(const FVector& EyeLocation, con
 	Params.AddIgnoredActor(GetOwner());
 	const bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, EyeLocation, End, ECC_Visibility, Params);
 
+	UE_LOG(LogTemp, Warning,
+		TEXT("[Xuanming][Fire][Server] Trace bHit=%d HitActor=%s Ammo剩=%d"),
+		bHit ? 1 : 0,
+		bHit ? *GetNameSafe(Hit.GetActor()) : TEXT("(none)"),
+		CurrentAmmo);
+
 	if (bHit && Hit.GetActor())
 	{
 		FPointDamageEvent DamageEvent(Damage, Hit, AimDirection, nullptr);
@@ -129,7 +146,9 @@ void AXuanmingWeapon::Server_Fire_Implementation(const FVector& EyeLocation, con
 		{
 			InstigatorController = OwnerChar->GetController();
 		}
-		Hit.GetActor()->TakeDamage(Damage, DamageEvent, InstigatorController, this);
+		const float DamageDealt = Hit.GetActor()->TakeDamage(Damage, DamageEvent, InstigatorController, this);
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Xuanming][Fire][Server] TakeDamage 返回=%.1f"), DamageDealt);
 	}
 
 	Multicast_PlayFireFX(bHit ? Hit.ImpactPoint : End, bHit);

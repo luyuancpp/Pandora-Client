@@ -178,6 +178,12 @@ void AXuanmingCharacter::Input_Crouch_Toggled(const FInputActionValue& Value)
 float AXuanmingCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent,
 	AController* EventInstigator, AActor* DamageCauser)
 {
+	UE_LOG(LogTemp, Warning,
+		TEXT("[Xuanming][Damage] %s 收到伤害=%.1f from=%s causer=%s HasAuth=%d Health(before)=%.1f"),
+		*GetName(), DamageAmount,
+		*GetNameSafe(EventInstigator), *GetNameSafe(DamageCauser),
+		HasAuthority() ? 1 : 0, Health);
+
 	if (!HasAuthority())
 	{
 		return 0.0f;
@@ -187,10 +193,19 @@ float AXuanmingCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dam
 	if (ActualDamage > 0.0f)
 	{
 		Health = FMath::Max(0.0f, Health - ActualDamage);
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Xuanming][Damage] %s Health(after)=%.1f (实际扣血=%.1f)"),
+			*GetName(), Health, ActualDamage);
 		if (Health <= 0.0f)
 		{
 			HandleDeath();
 		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Xuanming][Damage] %s Super::TakeDamage 返回 0 (伤害被吞 - DamageType/Resistance?)"),
+			*GetName());
 	}
 	return ActualDamage;
 }
