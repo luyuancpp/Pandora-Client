@@ -61,31 +61,6 @@ void AXuanmingPlayerController::PlayerTick(float DeltaTime)
 			TryInjectViewModel(TEXT("PlayerTick"));
 		}
 		PushStateToViewModel();
-
-		// 诊断: 前 10 帧打印 viewport / 鼠标 / 焦点状态, 追踪 mouse capture 时序
-		if (DiagnosticTickCount < 10)
-		{
-			DiagnosticTickCount++;
-			float MouseX = 0.f, MouseY = 0.f;
-			GetMousePosition(MouseX, MouseY);
-
-			const UGameViewportClient* VC = GetWorld() ? GetWorld()->GetGameViewport() : nullptr;
-			const int32 CaptureMode = VC ? (int32)VC->GetMouseCaptureMode() : -1;
-			const int32 LockMode = VC ? (int32)VC->GetMouseLockMode() : -1;
-
-			const bool bViewportHasFocus = FSlateApplication::Get().GetUserFocusedWidget(0).IsValid();
-
-			FRotator ControlRot = GetControlRotation();
-
-			UE_LOG(LogTemp, Warning,
-				TEXT("[Xuanming][Tick%d] Mouse=(%.1f,%.1f) Cap=%d Lock=%d HasFocus=%d ConsumeFrames=%d ControlRot=(P=%.1f,Y=%.1f,R=%.1f)"),
-				DiagnosticTickCount,
-				MouseX, MouseY,
-				CaptureMode, LockMode,
-				bViewportHasFocus ? 1 : 0,
-				LookInputConsumeFrames,
-				ControlRot.Pitch, ControlRot.Yaw, ControlRot.Roll);
-		}
 	}
 }
 
@@ -121,23 +96,17 @@ void AXuanmingPlayerController::ApplyFPSInputMode()
 	// 关键: HUDWidget 已 AddToViewport, 但默认 IsFocusable=true 会抢 focus,
 	//       必须显式 SetIsFocusable(false), 否则首次点击 = focus 从 UMG 还给 viewport,
 	//       这一还原过程会触发 mouse delta -> 镜头乱转
-	UE_LOG(LogTemp, Warning, TEXT("[Xuanming][InputMode] ===== ApplyFPSInputMode START ====="));
+	UE_LOG(LogTemp, Warning, TEXT("[Xuanming] FPS InputMode applied"));
 
 	if (HUDWidget)
 	{
 		HUDWidget->SetIsFocusable(false);
-		UE_LOG(LogTemp, Warning, TEXT("[Xuanming][InputMode] HUDWidget->SetIsFocusable(false) OK"));
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Xuanming][InputMode] HUDWidget=null, skip SetIsFocusable"));
 	}
 
 	FInputModeGameOnly InputMode;
 	// SetConsumeCaptureMouseDown 默认 false, 不要改 - 否则首次点击触发 viewport
 	// 重新捕获鼠标, 期间的鼠标 delta 会灌进 Look
 	SetInputMode(InputMode);
-	UE_LOG(LogTemp, Warning, TEXT("[Xuanming][InputMode] SetInputMode(GameOnly) OK"));
 
 	bShowMouseCursor = false;
 	bEnableClickEvents = false;
@@ -150,14 +119,12 @@ void AXuanmingPlayerController::ApplyFPSInputMode()
 		VC->SetMouseCaptureMode(EMouseCaptureMode::CapturePermanently_IncludingInitialMouseDown);
 		VC->SetMouseLockMode(EMouseLockMode::LockAlways);
 		VC->SetHideCursorDuringCapture(true);
-		UE_LOG(LogTemp, Warning, TEXT("[Xuanming][InputMode] ViewportClient capture configured OK"));
 		// 触发一次 SetUserFocus, 把焦点立刻给 viewport, 不等到首次点击
 		FSlateApplication::Get().SetAllUserFocusToGameViewport();
-		UE_LOG(LogTemp, Warning, TEXT("[Xuanming][InputMode] SetAllUserFocusToGameViewport OK"));
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("[Xuanming][InputMode] GameViewport=null! ViewportClient 配置跳过 - 这是 bug 的高度可疑源头"));
+		UE_LOG(LogTemp, Error, TEXT("[Xuanming] FPS InputMode: GameViewport=null"));
 	}
 
 	FlushPressedKeys();
@@ -165,8 +132,6 @@ void AXuanmingPlayerController::ApplyFPSInputMode()
 	// 实测 UE 5.7.4 把首次 capture 异常 delta 分多帧灌入 (帧1小, 帧2 |Axis|≈30, 帧3 ≈8),
 	// 一次性吞前几帧最稳. 5 帧 @60fps ≈ 0.08s, 玩家无感.
 	LookInputConsumeFrames = LookConsumeFramesAfterModeSwitch;
-	UE_LOG(LogTemp, Warning, TEXT("[Xuanming][InputMode] ===== ApplyFPSInputMode END, ConsumeFrames=%d ====="),
-		LookInputConsumeFrames);
 }
 
 void AXuanmingPlayerController::TryRegisterIMC(const TCHAR* From)

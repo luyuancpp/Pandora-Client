@@ -86,8 +86,4 @@ public:
 	/** 切 InputMode 后吞掉的 Look 帧数. 默认 5 帧 (~0.08s @ 60fps), 玩家无感. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Xuanming|Input")
 	int32 LookConsumeFramesAfterModeSwitch = 5;
-
-private:
-	/** 诊断: PlayerTick 前 10 帧打日志追踪 mouse capture 时序 */
-	int32 DiagnosticTickCount = 0;
 };

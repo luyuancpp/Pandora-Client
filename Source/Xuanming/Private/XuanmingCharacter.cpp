@@ -117,21 +117,9 @@ void AXuanmingCharacter::Input_Look(const FInputActionValue& Value)
 	{
 		if (PC->LookInputConsumeFrames > 0)
 		{
-			UE_LOG(LogTemp, Warning,
-				TEXT("[Xuanming][Look] CONSUMED frame=%d Axis=(%.3f, %.3f)"),
-				PC->LookInputConsumeFrames, Axis.X, Axis.Y);
 			PC->LookInputConsumeFrames--;
 			return;
 		}
-	}
-
-	// 诊断日志: 只打 |delta| > 5 的, 避免刷屏. 正常鼠标转头 delta 在 0.1~3 之间.
-	// 如果看到 |delta| > 10 -> 就是首次 capture 异常 delta 漏过来了
-	if (FMath::Abs(Axis.X) > 5.0f || FMath::Abs(Axis.Y) > 5.0f)
-	{
-		UE_LOG(LogTemp, Warning,
-			TEXT("[Xuanming][Look] BIG DELTA: Axis=(%.3f, %.3f) -> YawDelta=%.3f PitchDelta=%.3f"),
-			Axis.X, Axis.Y, Axis.X, -Axis.Y);
 	}
 
 	AddControllerYawInput(Axis.X);
@@ -179,12 +167,6 @@ void AXuanmingCharacter::Input_Crouch_Toggled(const FInputActionValue& Value)
 float AXuanmingCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent,
 	AController* EventInstigator, AActor* DamageCauser)
 {
-	UE_LOG(LogTemp, Warning,
-		TEXT("[Xuanming][Damage] %s 收到伤害=%.1f from=%s causer=%s HasAuth=%d Health(before)=%.1f"),
-		*GetName(), DamageAmount,
-		*GetNameSafe(EventInstigator), *GetNameSafe(DamageCauser),
-		HasAuthority() ? 1 : 0, Health);
-
 	if (!HasAuthority())
 	{
 		return 0.0f;
@@ -194,19 +176,10 @@ float AXuanmingCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dam
 	if (ActualDamage > 0.0f)
 	{
 		Health = FMath::Max(0.0f, Health - ActualDamage);
-		UE_LOG(LogTemp, Warning,
-			TEXT("[Xuanming][Damage] %s Health(after)=%.1f (实际扣血=%.1f)"),
-			*GetName(), Health, ActualDamage);
 		if (Health <= 0.0f)
 		{
 			HandleDeath();
 		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning,
-			TEXT("[Xuanming][Damage] %s Super::TakeDamage 返回 0 (伤害被吞 - DamageType/Resistance?)"),
-			*GetName());
 	}
 	return ActualDamage;
 }
@@ -256,8 +229,7 @@ void AXuanmingCharacter::HandleDeath()
 
 void AXuanmingCharacter::XmDamageSelf(float Amount)
 {
-	UE_LOG(LogTemp, Warning, TEXT("[Xuanming][DamageSelf] 控制台触发 self-damage Amount=%.1f IsLocal=%d HasAuth=%d"),
-		Amount, IsLocallyControlled() ? 1 : 0, HasAuthority() ? 1 : 0);
+	UE_LOG(LogTemp, Log, TEXT("[Xuanming] XmDamageSelf Amount=%.1f"), Amount);
 	// 走 ServerRPC, 让 server 真实扣血 (走标准 TakeDamage 链路, 验证 MVVM 推送)
 	Server_DamageSelf(Amount);
 }
