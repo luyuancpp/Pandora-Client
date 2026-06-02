@@ -3,6 +3,10 @@
 #include "XuanmingCharacter.h"
 #include "XuanmingWeapon.h"
 #include "XuanmingPlayerController.h"
+#include "XuanmingPlayerState.h"
+#include "XuanmingAttributeSet.h"
+#include "AbilitySystemComponent.h"
+#include "Abilities/GameplayAbility.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -89,6 +93,10 @@ void AXuanmingCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	{
 		EIC->BindAction(IA_Crouch, ETriggerEvent::Started, this, &AXuanmingCharacter::Input_Crouch_Toggled);
 	}
+	if (IA_FrostCurse)
+	{
+		EIC->BindAction(IA_FrostCurse, ETriggerEvent::Started, this, &AXuanmingCharacter::Input_FrostCurse_Started);
+	}
 }
 
 void AXuanmingCharacter::Input_Move(const FInputActionValue& Value)
@@ -161,6 +169,24 @@ void AXuanmingCharacter::Input_Crouch_Toggled(const FInputActionValue& Value)
 	else
 	{
 		Crouch();
+	}
+}
+
+void AXuanmingCharacter::Input_FrostCurse_Started(const FInputActionValue& Value)
+{
+	// 通过 ASC 触发技能, 内部走 server 端 ActivateAbility (GA 配的 NetExecutionPolicy 决定)
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		// TryActivateAbilitiesByClass 走 GA 类查找, 命中 StartupAbilities 里 Given 过的实例
+		// 找不到等价 class API 时, 退化用 GameplayTag (M1.5 先保持 class 查���简洁)
+		for (const TSubclassOf<UGameplayAbility>& AbilityClass : StartupAbilities)
+		{
+			if (*AbilityClass && AbilityClass->GetDefaultObject<UGameplayAbility>()->GetClass()->GetName().Contains(TEXT("FrostCurse")))
+			{
+				ASC->TryActivateAbilityByClass(AbilityClass);
+				return;
+			}
+		}
 	}
 }
 
@@ -239,4 +265,74 @@ void AXuanmingCharacter::Server_DamageSelf_Implementation(float Amount)
 	// 在 server 上调 TakeDamage, 走完整伤害链路
 	FDamageEvent DummyEvent;
 	TakeDamage(Amount, DummyEvent, nullptr, this);
+}
+
+// === GAS ===
+
+UAbilitySystemComponent* AXuanmingCharacter::GetAbilitySystemComponent() const
+{
+	if (const AXuanmingPlayerState* PS = GetPlayerState<AXuanmingPlayerState>())
+	{
+		return PS->GetAbilitySystemComponent();
+	}
+	return nullptr;
+}
+
+void AXuanmingCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	// server 端: PlayerState 此时已就绪
+	InitAbilitySystem();
+}
+
+void AXuanmingCharacter::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+	// client 端: PlayerState 复制过来后才能拿到 ASC
+	InitAbilitySystem();
+}
+
+void AXuanmingCharacter::InitAbilitySystem()
+{
+	AXuanmingPlayerState* PS = GetPlayerState<AXuanmingPlayerState>();
+	if (!PS)
+	{
+		return;
+	}
+	UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent();
+	if (!ASC)
+	{
+		return;
+	}
+
+	// OwnerActor=PS (属性宿主), AvatarActor=this (技能作用者)
+	ASC->InitAbilityActorInfo(PS, this);
+
+	// 仅 server 给技能, 给后通过 replication 同步到 client
+	if (HasAuthority() && !bAbilitiesGiven)
+	{
+		for (const TSubclassOf<UGameplayAbility>& AbilityClass : StartupAbilities)
+		{
+			if (*AbilityClass)
+			{
+				ASC->GiveAbility(FGameplayAbilitySpec(AbilityClass, /*Level*/ 1, /*InputID*/ INDEX_NONE, this));
+			}
+		}
+		bAbilitiesGiven = true;
+	}
+
+	// 同步初始 Health 到旧字段, 让 ViewModel 推送有正确起点
+	if (UXuanmingAttributeSet* AS = PS->GetAttributeSet())
+	{
+		Health = AS->GetHealth();
+		MaxHealth = AS->GetMaxHealth();
+	}
+}
+
+void AXuanmingCharacter::OnHealthDepleted()
+{
+	if (HasAuthority() && Health <= 0.f)
+	{
+		HandleDeath();
+	}
 }
