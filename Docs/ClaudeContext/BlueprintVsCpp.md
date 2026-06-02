@@ -22,6 +22,8 @@
 
 ## 真正的上线优化（按收益排序，和蓝图无关）
 
+> **权威版在主 CLAUDE.md "真正的上线优化" 章节**，这里只做引用。改动在主文件改，避免漂移。
+
 1. 关 Tick：`PrimaryActorTick.bCanEverTick = false`，不需要的一律关
 2. Significance Manager：远处玩家降更新频率
 3. `NetUpdateFrequency` 分级 + AOI

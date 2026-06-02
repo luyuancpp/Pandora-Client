@@ -54,10 +54,25 @@
 
 1. **服务器权威**：伤害计算、武器射击、移动校验全在服务器；客户端只发请求和做预测
 2. **小步快跑**：每完成一个独立改动就 commit + push，不要堆大 PR
-3. **不动引擎**：所有 workaround 都通过项目侧脚本解决（见上面"最高指令"）
-4. **代码 > 蓝图**：核心逻辑用 C++，蓝图只用来挂资产和调参数。蓝图性能问题详见 `Docs/ClaudeContext/BlueprintVsCpp.md`
-5. **UI 走 MVVM**：所有 HUD/菜单数据通过 `UMVVMViewModelBase` 子类暴露给 WBP，**禁止函数 Binding**（每帧 Tick 调用，UE 官方标记的性能陷阱）。Setter 用 `UE_MVVM_SET_PROPERTY_VALUE` 宏；派生属性用 `UFUNCTION(BlueprintPure, FieldNotify, meta=(FieldNotifyDependencies="A,B"))`。对齐 Epic Fortnite Chapter 4+ / 米哈游崩铁 / 三角洲手游做法
+3. **不动引擎**：所有 workaround 都通过项目侧脚本解决
+4. **代码 > 蓝图**：核心逻辑用 C++，蓝图只用来挂资产和调参数
+5. **UI 走 MVVM**：所有 HUD/菜单数据通过 `UMVVMViewModelBase` 子类暴露给 WBP，**禁止函数 Binding**（每帧 Tick 调用，UE 官方标记的性能陷阱）。Setter 用 `UE_MVVM_SET_PROPERTY_VALUE` 宏；派生属性用 `UFUNCTION(BlueprintPure, FieldNotify, meta=(FieldNotifyDependencies="A,B"))`。对齐 Epic Fortnite Chapter 4+ / 米哈游崩铁 / 三角洲手游做法。
 6. **代码模板意识**：Demo 后立刻招程序铺量，每一处实现按"以后会有 5-15 个程序在这上面加东西"的标准写。详见 `Docs/ClaudeContext/SprintPlan.md` 的"Demo 后招人铺量"章节
+
+---
+
+## 真正的上线优化（按收益排序，和蓝图无关）
+
+每次写代码都按这个清单自检。每一项收益都比"蓝图转 C++"大 10-100 倍。
+
+1. **关 Tick**：`PrimaryActorTick.bCanEverTick = false`，不需要的一律关
+2. **Significance Manager**：远处玩家降更新频率
+3. **`NetUpdateFrequency` 分级 + AOI**
+4. **LOD / HLOD**：远处低模
+5. **Lumen / Nanite 分级**，DS 关渲染
+6. **DS Shipping target 关 logging**：`bUseLoggingInShipping = false`
+
+蓝图本身不是性能瓶颈，瓶颈是"Tick 里跑了什么"。完整论证 + "蓝图能不能转 C++"标准回复模板见 `Docs/ClaudeContext/BlueprintVsCpp.md`。
 
 ---
 
