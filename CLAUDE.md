@@ -227,15 +227,38 @@ UE 5.7.4 release 自带的 `Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTo
 - 项目当前 0 个 WBP 无历史包袱，最佳切入点；先函数 Binding 后迁 MVVM 要重写，一次到位省事
 - UE 5.7 ModelViewViewModel 插件虽 `IsBetaVersion=true` 但 5.1 引入 3 年已稳定，宏 `UE_MVVM_SET_PROPERTY_VALUE` 5.3+ 不变
 
+**M1.5 完成** (2026-06-01)：GAS 框架 + 玄冥冰咒示例技能（C++ 落地，待用户编译 + 编辑器配蓝图）
+- ✅ `Xuanming.uproject` 启用 `GameplayAbilities` 插件
+- ✅ `Source/Xuanming/Xuanming.Build.cs` 加 `GameplayAbilities` + `GameplayTags` + `GameplayTasks`
+- ✅ C++ 新增 `UXuanmingAttributeSet`（属性：Health/MaxHealth/Mana/MaxMana/MoveSpeed/Damage(meta)）：
+  - `ATTRIBUTE_ACCESSORS` 宏批量生成 4 件套（GetXxxAttribute / GetXxx / SetXxx / InitXxx）
+  - `DOREPLIFETIME_CONDITION_NOTIFY(..., REPNOTIFY_Always)` GAS 推荐复制策略
+  - `PreAttributeChange` 钳制上下限；`PostGameplayEffectExecute` 把 Damage meta 转成 Health 扣减、MoveSpeed 同步到 `CharacterMovement.MaxWalkSpeed`、Health 镜像到 `Character.Health`（兼容旧 ViewModel/HUD 推送链路）
+- ✅ `AXuanmingPlayerState` 实现 `IAbilitySystemInterface`，构造 `UAbilitySystemComponent`（Mixed 复制模式）+ `UXuanmingAttributeSet`，`NetUpdateFrequency=100`
+- ✅ `AXuanmingCharacter` 实现 `IAbilitySystemInterface`（转发 PlayerState 的 ASC）：
+  - `PossessedBy`（server）+ `OnRep_PlayerState`（client）双时机调 `InitAbilityActorInfo`
+  - server 端 `GiveAbility(StartupAbilities)`，幂等 `bAbilitiesGiven` 防重复
+  - 新增 `OnHealthDepleted` 在 AttributeSet Health 归零时触发 `HandleDeath`
+  - 新增 `IA_FrostCurse` UPROPERTY + `Input_FrostCurse_Started` 调 `ASC->TryActivateAbilityByClass`
+- ✅ C++ 新增三个 GE 子类（在 BP 子类里调参更方便）：
+  - `UGE_FrostSlow`：Duration 3s，MoveSpeed *= 0.5，加 Tag `State.Debuff.Slow`
+  - `UGE_FrostCost`：Instant，Mana -25
+  - `UGE_FrostCooldown`：Duration 5s，加 Tag `Cooldown.FrostCurse`
+  - 用 UE 5.4+ 的 `UTargetTagsGameplayEffectComponent` + `FInheritedTagContainer` 配标签（旧 `InheritableOwnedTagsContainer` 5.3+ 已 deprecated）
+- ✅ C++ 新增 `UXuanmingGA_FrostCurse`（NetExecutionPolicy=ServerOnly, InstancedPerActor）：
+  - 默认 `CostGameplayEffectClass=GE_FrostCost`、`CooldownGameplayEffectClass=GE_FrostCooldown`、`SlowEffectClass=GE_FrostSlow`
+  - `ActivateAbility`：CommitAbility（一次性 check + apply Cost+Cooldown）→ 从 Caster 眼睛 LineTrace（`ECC_Pawn`，与 Weapon 一致）→ 命中 Pawn 时 `MakeOutgoingSpec` + `ApplyGameplayEffectSpecToTarget`，DrawDebugLine 反馈
+- ⚠️ 用户尚需做：
+  1. 在编辑器编译 C++（首次会重新生成 Project）
+  2. Project Settings → GameplayTags 注册 `State.Debuff.Slow` / `Cooldown.FrostCurse`（或开启 `bAllowGameplayTagsCreationByDefault` 让 GE 构造时自动注册）
+  3. 在 IMC_Default 加 `IA_FrostCurse`（bool, Q 键）
+  4. BP_XuanmingCharacter 指派 `IA_FrostCurse` + `StartupAbilities[0] = UXuanmingGA_FrostCurse::StaticClass()` 或 BP 子类
+  5. 可选：建 BP 子类 `BP_GA_FrostCurse` 调参（射程、Cost 数值、SlowEffect 强度）
+- ⚠️ HUD 当前还显示 `Character.Health`（旧 ViewModel 链路），AttributeSet.Health 通过 `PostGameplayEffectExecute` 镜像到 `Character.Health` 保持兼容；后续 M1.x 可把 ViewModel 直接对接 AttributeSet（监听 `GetGameplayAttributeValueChangeDelegate`）做"一次到位"的 GAS HUD
+
 ### M1 剩余子里程碑（FPS PoC 路线图）
 
 ```
-M1.5 GAS 框架 + 玄冥冰咒示例技能           3-5 天
-  - 启用 GameplayAbilities 插件（uproject + Build.cs）
-  - Character 加 ASC + AttributeSet (HP/Mana/Speed/Damage)
-  - GA_XuanmingFrostCurse：按 Q 释放，对前方目标施加 GE_Slow（速度 -50% × 3s）
-  - 这是仙道 vs 现代 FPS 反差的差异化核心
-
 M1.x 死亡-重生系统（M1.5 后插入）         1-2 天
   - HandleDeath 禁 capsule collision + 隐藏/销毁 actor
   - GameMode 延迟重生 (3s) + 通知 PlayerState K/D
@@ -250,9 +273,110 @@ M1.x 测试关卡 L_Sandbox_01                 0.5 天
   - L_Whitebox_01 保持干净 (DS smoke test 用)
 ```
 
+### 一个月冲刺规划（2026-06 立项）：假登录 → 主城 → 组队匹配 → 战斗
+
+用户已规划出一个月目标：**假登录 → 主城（大厅，可放技能）→ 组队匹配 → 战斗服**。
+
+**关键架构决策：主城 / 大厅就是另一个 DS。** 用户明确强调：主城 DS 和战斗服 DS 是**两个独立进程、独立可执行文件、独立部署**，共用 C++ 代码但 GameMode 不同。**不要**把主城做成"客户端单机场景 + 列表面板"那种纯 UI 大厅。
+
+| 服务器 | 进程 | 端口 | GameMode | 玩家上限 | 同步频率 | 技能行为 |
+|---|---|---|---|---|---|---|
+| 主城（Hub） | 独立 DS 进程 | 7778 | `XuanmingHubGameMode` | **50 人**（甜区） | 10Hz + AOI 半径 50m | 表演型：放特效但**不**结算伤害（State.InHub tag 拦截 ApplyDamage） |
+| 战斗服（Match） | 独立 DS 进程 | 7777 | `XuanmingMatchGameMode` | **100 人/局**（同局，非同屏） | 60Hz + AOI + Significance | 完整 GAS 命中结算 |
+
+**主城是真 DS 不是 UI 大厅** —— 用户视角进游戏立刻就在主城里看到其他 50 个真人玩家走动放技能聊天，组队从主城 P2P 邀请，匹配从主城排队，战斗结束 ServerTravel 回主城。这个体感对齐三角洲手游 / 原神蒙德城 / FF14 主城。
+
+**主城上限 50 的理由**（不要轻易改）：
+- UE DS 在 16 人战斗 验证基础上跑 50 人静态/低频很轻松
+- 太少（≤20）显得冷清；太多（≥100）AOI 复杂度暴涨且玩家停留久（带宽×时长 = 钱）
+- 对标：三角洲手游主城同屏 ≈ 30-40，原神蒙德城 ≈ 20，FF14 主城 ≈ 100（端游另当别论）
+- "主城能放技能"采用 **D1 表演型**（不打人），原神/三角洲都是这做法，性价比最高
+
+**战斗服 100 人警告**：
+- 100 人**同局**（PUBGM 模式，4km 地图分散）可行；100 人**同屏**几乎无商业项目（Apex/三角洲都是 60）
+- 单帧 Replication O(N²)：16 人=256，100 人=10000，**40 倍**
+- 必须做 AOI + Significance Manager + NetUpdateFrequency 分级，否则带宽爆炸（5MB/s 出口）
+- 若 M2 压测扛不住，**先砍到 60 对齐三角洲**，不要为了"100"硬撑
+
+**4 周排期**：
+
+```
+Week 1：假登录 + 主城骨架
+  - 假登录：本地 JSON 模拟账号，UMG 登录界面 → 进 L_Hub_01
+  - 不接真后端（M2 再做），但 PlayerState 字段按真账号设计（AccountId/Nickname/Avatar）
+  - L_Hub_01 主城白盒（100m × 100m，含出生点、传送门、训练场区域）
+  - XuanmingHubGameMode：继承 GameMode，禁伤害结算（重写 ApplyDamage 或 GAS tag 拦截）
+  - 主城 DS 跑通（沿用 LaunchServer.bat 框架，端口 7778 区分战斗服 7777）
+
+Week 2：主城多人 + 表演技能
+  - 主城承载 50 人压测（NetUpdateFrequency=10, AOI 50m）
+  - 主城技能：复用 GAS，AbilityTags 加 State.InHub，GA::ActivateAbility 检测 tag 时跳过 ApplyDamage
+  - 表演型 GE：只播 Cue（特效+音效）+ Multicast，不改 Health/Mana（或 Mana 仍扣，做"消耗感"）
+  - AOI 调参 + 50 人压测复盘（带宽、tick 耗时、Replication 包大小）
+  - ※ World Chat 不做：聊天系统涉及频道/屏蔽词/举报，一个月做不完，挪到 M2
+
+Week 3：组队 + 匹配
+  - 4 人组队：队长发起 → Invite RPC → 队员同意 → PartyComponent 挂 PlayerState
+  - 匹配服骨架：单独进程（不是 UE DS，用 Go/C++ 写最简单 FIFO 队列即可）
+  - 客户端轮询匹配状态 → 匹配成功 → 服务器返回战斗 DS 地址 → ClientTravel
+  - 不做 MMR（M3 再做），先 FIFO 凑够人就开局
+
+Week 4：战斗服 + 联调
+  - XuanmingMatchGameMode（继承现有 GameMode，开启伤害结算）
+  - 战斗服压测：先 60 人，能稳过再加到 100（不行就停在 60）
+  - 主城 ↔ 战斗服 ↔ 主城 闭环（战斗结束 ServerTravel 回主城）
+  - Bug 修复 + Demo 录制 + commit
+```
+
+**这个月**不**做的事**（明确划线）：
+- ❌ 真账号系统（Week 1 用假登录占位，M2 做）
+- ❌ World Chat / 聊天系统（涉及频道/屏蔽词/举报，挪到 M2）
+- ❌ 反作弊（M2-M3 做）
+- ❌ 热更（M3 前不碰，详见"长期挂账 #7"）
+- ❌ 排位/MMR（M3 做，先 FIFO）
+- ❌ 商城/付费（M3 做）
+- ❌ 美术正式资产（白盒贯穿整月，M2 换皮）
+
+### Demo 后招人铺量（Sprint 完成后启动）
+
+用户明确：**一个月 Demo 跑通后立刻招程序铺量**。这意味着 Sprint 不只是"给老板看的 demo"，更是"给未来同事看的代码模板"。Demo 阶段我（Claude）的每一处实现都要按"以后会有 5-15 个程序在这上面加东西"的标准写，不是"先糊一个能跑就行"。
+
+**给招人铺量做的准备（Sprint 期间必须顺手做的事）**：
+
+1. **代码注释**：所有 C++ 类（特别是 `XuanmingHubGameMode` / `XuanmingMatchGameMode` / `UXuanmingAttributeSet` / `UXuanmingGA_*`）必须有中文 class-level 注释，说清职责 + 为什么这么写
+2. **模块边界**：尽早拆 Game Module，不要全部塞 `Source/Xuanming/`。Sprint 至少拆出：
+   - `XuanmingCore`（GameMode/PlayerState/Character 基类）
+   - `XuanmingAbility`（GAS 派生）
+   - `XuanmingUI`（MVVM ViewModels）
+   - `XuanmingNet`（匹配服客户端、ClientTravel 封装）
+   - 拆早不拆晚，后期拆要动 include 全网
+3. **命名规范文档**：写一个 `Docs/CodingStyle.md`（500 字内）说清楚 `A/U/F/I/E` 前缀、子类用 `Xuanming` 前缀、UFUNCTION 命名、UPROPERTY 分组。新人入职第一天看这个
+4. **Sprint Week 4 末尾交付物**除了 demo 本身，还要：
+   - `Docs/Onboarding.md`：新程序入职 day1 看的（环境搭建、首次编译、跑通 PIE / 真 DS）
+   - `Docs/Architecture.md`：架构总览图（主城 DS / 战斗服 DS / 匹配服 / 客户端 四方关系）
+   - 至少 3 个示例 PR（功能开发的标准模板）
+
+**招人后第一波（5-10 人）建议分工**（Sprint 后规划，**不要现在动手**）：
+
+| 方向 | 人数 | 主攻 |
+|---|---|---|
+| 玩法 / GAS | 2-3 | 武器扩展（栓狙/霰弹）、技能扩展、角色差异化 |
+| 网络 / DS 优化 | 1-2 | AOI / Significance / 100 人压测 |
+| 后端 / 匹配 / 账号 | 1-2 | M2 的真账号系统、MMR 匹配、数据上报 |
+| UI / MVVM | 1 | 商城、好友、战绩 |
+| 反作弊 | 0 → M3 招 | M2 阶段先用 EAC SDK 占位 |
+| TA / 美术 | 0 → 美术外包对接 | 用户自己 + 外包 |
+
+**Demo 期我（Claude）写代码的硬要求**（落实到每个文件）：
+
+1. 所有 GameMode / GameState / PlayerController 类必须**只放骨架职责**，玩法逻辑下沉到 Component 或 Subsystem。理由：新人接手时改一个功能不应该改 GameMode（改 GameMode 影响面太大）
+2. 数值参数全部 `UPROPERTY(EditDefaultsOnly, Category="...")`，不要硬编码。理由：策划/新人调参不应该改 C++
+3. 所有 Subsystem 优先用 `UGameInstanceSubsystem` / `UWorldSubsystem`，不要塞 `AGameMode`。理由：Subsystem 是 UE5 推荐的"全局单例"，新人查文档就懂
+4. 任何"临时方案"必须在代码里写 `// TODO(M2): xxx` 注释 + 同步加到 CLAUDE.md 挂账区。理由：避免"临时变永久"
+
 ### M2-M5 后续大节点（M1 完成后规划，不到时不动）
 
-- **M2 可内测**：匹配服 + 账号 + 反��弊 + 数据上报（1-2 月）
+- **M2 可内测**：匹配服 + 账号 + 反作弊 + 数据上报（1-2 月）
 - **M3 可外测**：CI/CD + Linux DS + 大厅 + 商城 + 多地图（2-3 月）
 - **M4 可上线**：性能调优 + 反外挂 + 风控 + 客服后台（3-6 月）
 - **M5 运营**：赛季 + 活动 + 内容更新管线（持续）
@@ -266,6 +390,12 @@ M1.x 测试关卡 L_Sandbox_01                 0.5 天
 5. 美术外包对接（M2 阶段换正式角色资产，按 SK_Mannequin 标准骨架做就零改动替换）
 6. **Git LFS**：`.gitattributes` 已配 `*.uasset filter=lfs`，但本机 git-lfs 未装。
    M2 前补装：`winget install GitHub.GitLFS` → `git lfs install` → `git lfs migrate import --include="*.uasset,*.umap"`
+7. **热更管线**（M3 外测前做，**M1-M2 阶段不要碰**）：
+   - 第 1 步 DataTable 远程下发（1 周）：武器属性/技能数值放 DataTable，启动从后端拉 JSON 覆盖
+   - 第 2 步 Pak 热更资源（2-3 周）：UnrealPak 打 .pak + CDN（OSS/七牛）+ `FCoreDelegates::OnMountPak` 挂载，先热更贴图/音效，再热更 WBP
+   - 第 3 步 WBP/蓝图热更（M3-M4）：活动界面、商城界面打可热更 Pak
+   - **不做 Lua/脚本层**：对齐三角洲/PUBGM/和平精英的纯 Pak 方案。腾讯系 UE 项目全行业惯例，不要为"灵活性"叠 VM 拖累性能 + 反作弊
+   - MVVM 架构天然支持 View 层 Pak 热更（WBP 在 Pak 里随便换），ViewModel 层（C++）跟版本走，不冲突
 
 ## 项目设计原则
 
@@ -349,6 +479,13 @@ M1.x 测试关卡 L_Sandbox_01                 0.5 天
 | MVVM `UFUNCTION(Exec)` 是 PIE 控制台调试 BlueprintCallable 的最干净方式 | 想在 PIE 控制台触发 BlueprintCallable，**不要用 `ke * FuncName Args`**——`ke` 只能调 BlueprintCallable，且对未注册的 actor 名 `0 instances succeeded`。**改用 `UFUNCTION(Exec)`**：函数自动注册为控制台命令，PIE 里直接输入 `XmDamageSelf 50` 调用，最稳。注意：Exec 只对 PlayerController/Pawn/Character 等 Outer Auto 类有效 |
 | UE5 Character `FDamageEvent` 前置声明，cpp 用要 include | `Actor.h` 里 `TakeDamage` 用 `struct FDamageEvent const&` 前置声明，cpp 里要构造 `FDamageEvent DummyEvent` 必须 `#include "Engine/DamageEvents.h"`。错过会报 `error C2079: "DummyEvent" 使用未定义的 struct "FDamageEvent"` |
 | UE Editor 进程占用 .uasset/.umap 文件，git checkout 报 "Invalid argument" | 编辑器开着的时候 git 不能替换它锁着的文件。**解决**：完全关闭 Editor（不仅 PIE，整个 UnrealEditor.exe 进程都要关），再跑 git checkout / reset --hard。任务管理器确认无 UnrealEditor.exe 残留 |
+| GAS `InitAbilityActorInfo` 必须 server + client 双时机调 | ASC 挂在 PlayerState 上时：server 端 `PossessedBy` 后 PS 已就绪可初始化；client 端 PS 是网络复制过来的，必须 `OnRep_PlayerState` 触发再初始化一次。**只调一处**会导致一端 ASC.AvatarActor 为空，TryActivateAbility 静默失败 |
+| GAS `GiveAbility` 只能在 server 调 | client 端调返回 0 但不报错，技能列表不会同步。`HasAuthority()` 守卫 + 一次性 `bAbilitiesGiven` 防 OnRep_PlayerState 反复 give |
+| AttributeSet 的 `DOREPLIFETIME` 要用 `REPNOTIFY_Always` | GAS 推荐 `DOREPLIFETIME_CONDITION_NOTIFY(..., COND_None, REPNOTIFY_Always)`。普通 RepNotify 在新值==旧值时不广播，但 GAS prediction 回滚时旧值可能短暂相等导致 client 错过通知，HUD 表现为"扣血了但血条没刷" |
+| GAS Damage 走 meta attribute 不直接复制 | 别让 client 看到 server 端的伤害数值（防作弊 + 节省带宽）。`Damage` 字段不进 GetLifetimeReplicatedProps，只在 server 的 `PostGameplayEffectExecute` 里读出来转成 `Health -= Damage`，再让 Health 复制下去 |
+| AttributeSet 改 MoveSpeed 不会自动同步到 CharacterMovement | `FGameplayAttributeData` 只是数字，引擎不知道你想干啥。在 `PostGameplayEffectExecute` 里手动 `Movement->MaxWalkSpeed = BaseSpeed * GetMoveSpeed()`，否则冰咒 GE 应用了但角色照常跑 |
+| UE 5.4+ GE 配标签用 `UTargetTagsGameplayEffectComponent`，不要用 `InheritableOwnedTagsContainer` | 5.3 起旧 API 标 deprecated，5.5+ 可能直接删除。新写法：`FindOrAddComponent<UTargetTagsGameplayEffectComponent>()` + `FInheritedTagContainer.Added.AddTag(...)` + `SetAndApplyTargetTagChanges(...)` |
+| GAS GE 子类构造函数里 `RequestGameplayTag` 时 tag 未注册会 ensure | Project Settings → GameplayTags 提前注册（推荐）；或开 `bAllowGameplayTagsCreationByDefault=true` 让运行时自动建（不推荐，CI/team 拉代码后 tag 表会漂） |
 
 ## 用户偏好
 
