@@ -22,7 +22,10 @@ public class Xuanming : ModuleRules
 			"Slate",
 			"SlateCore",
 			"FieldNotification",
-			"ModelViewViewModel"
+			"ModelViewViewModel",
+			"GameplayAbilities",
+			"GameplayTags",
+			"GameplayTasks"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
