@@ -4,6 +4,7 @@
 #include "XuanmingCharacter.h"
 #include "XuanmingFrostEffects.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemBlueprintLibrary.h"
 #include "Abilities/Tasks/AbilityTask.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/World.h"
@@ -75,8 +76,10 @@ void UXuanmingGA_FrostCurse::ActivateAbility(const FGameplayAbilitySpecHandle Ha
 					CasterASC->MakeOutgoingSpec(SlowEffectClass, /*Level*/ 1.f, Ctx);
 				if (SpecHandle.IsValid())
 				{
+					// UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent 是从 Actor 拿 ASC 的标准 API
+					// (TargetPawn 实现 IAbilitySystemInterface 时直接转发, 否则查 component)
 					CasterASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(),
-						UAbilitySystemComponent::GetAbilitySystemComponentFromActor(TargetPawn));
+						UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetPawn));
 				}
 			}
 		}
