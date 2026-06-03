@@ -41,4 +41,15 @@ public:
 	/** 射程 (cm), 默认 2500 (≈ 25m, 短于步枪 100m) */
 	UPROPERTY(EditDefaultsOnly, Category = "Xuanming|FrostCurse")
 	float Range = 2500.f;
+
+	/**
+	 * 调试用: 允许把减速 GE 施加到自己身上.
+	 * - false (默认/生产): LineTrace 命中且目标 ≠ Caster 才 apply
+	 * - true (M1.5 调试): LineTrace 没命中或命中自己, 也把 GE apply 给 Caster
+	 *
+	 * 用法: 在 BP_GA_FrostCurse 的 Class Defaults 里勾上, 按 Q 不用瞄人就能验证
+	 * GE 链路通不通. 验证完取消勾选. 不要 Shipping 打开 (玩家滥用).
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "Xuanming|FrostCurse|Debug")
+	bool bAllowSelfTarget = false;
 };

@@ -63,24 +63,44 @@ void UXuanmingGA_FrostCurse::ActivateAbility(const FGameplayAbilitySpecHandle Ha
 		bHit ? FColor::Cyan : FColor::Blue, false, 1.0f, 0, 1.5f);
 	#endif
 
+	// 决定 GE 的目标 Pawn:
+	//  - 正常流程: 命中且不是自己 → 命中目标
+	//  - 调试模式 bAllowSelfTarget=true: 没命中或命中自己 → Caster (自伤, 验证 GE 链路用)
+	APawn* TargetPawn = nullptr;
 	if (bHit)
 	{
-		if (APawn* TargetPawn = Cast<APawn>(Hit.GetActor()))
+		if (APawn* HitPawn = Cast<APawn>(Hit.GetActor()))
 		{
-			if (TargetPawn != Caster && SlowEffectClass)
+			if (HitPawn != Caster)
 			{
-				// 给目标 ASC 应用减速 GE (走 GAS 标准复制路径, 所有 client 自动同步)
-				FGameplayEffectContextHandle Ctx = CasterASC->MakeEffectContext();
-				Ctx.AddSourceObject(Caster);
-				const FGameplayEffectSpecHandle SpecHandle =
-					CasterASC->MakeOutgoingSpec(SlowEffectClass, /*Level*/ 1.f, Ctx);
-				if (SpecHandle.IsValid())
-				{
-					// UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent 是从 Actor 拿 ASC 的标准 API
-					// (TargetPawn 实现 IAbilitySystemInterface 时直接转发, 否则查 component)
-					CasterASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(),
-						UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetPawn));
-				}
+				TargetPawn = HitPawn;
+			}
+			else if (bAllowSelfTarget)
+			{
+				TargetPawn = Caster;
+			}
+		}
+	}
+	if (!TargetPawn && bAllowSelfTarget)
+	{
+		TargetPawn = Caster;
+	}
+
+	if (TargetPawn && SlowEffectClass)
+	{
+		// 给目标 ASC 应用减速 GE (走 GAS 标准复制路径, 所有 client 自动同步)
+		FGameplayEffectContextHandle Ctx = CasterASC->MakeEffectContext();
+		Ctx.AddSourceObject(Caster);
+		const FGameplayEffectSpecHandle SpecHandle =
+			CasterASC->MakeOutgoingSpec(SlowEffectClass, /*Level*/ 1.f, Ctx);
+		if (SpecHandle.IsValid())
+		{
+			// UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent: 从 Actor 拿 ASC
+			// 的标准 API (TargetPawn 实现 IAbilitySystemInterface 时直接转发, 否则查 component).
+			if (UAbilitySystemComponent* TargetASC =
+				UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetPawn))
+			{
+				CasterASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
 			}
 		}
 	}
