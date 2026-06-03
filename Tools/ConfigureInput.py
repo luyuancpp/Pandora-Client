@@ -24,6 +24,7 @@ IA_LOOK_PATH   = "/Game/Input/IA_Look"
 IA_JUMP_PATH   = "/Game/Input/IA_Jump"
 IA_FIRE_PATH   = "/Game/Input/IA_Fire"
 IA_CROUCH_PATH = "/Game/Input/IA_Crouch"
+IA_FROST_CURSE_PATH = "/Game/Input/IA_FrostCurse"
 IMC_DEFAULT_PATH = "/Game/Input/IMC_Default"
 
 
@@ -89,6 +90,7 @@ def main():
     ia_jump   = load_asset_or_die(IA_JUMP_PATH)
     ia_fire   = load_asset_or_die(IA_FIRE_PATH)
     ia_crouch = load_asset_or_die(IA_CROUCH_PATH)
+    ia_frost_curse = load_asset_or_die(IA_FROST_CURSE_PATH)
     imc       = load_asset_or_die(IMC_DEFAULT_PATH)
 
     # 2. 校正 IA 的 Value Type
@@ -98,6 +100,7 @@ def main():
     set_ia_value_type(ia_jump,   "BOOLEAN")
     set_ia_value_type(ia_fire,   "BOOLEAN")
     set_ia_value_type(ia_crouch, "BOOLEAN")
+    set_ia_value_type(ia_frost_curse, "BOOLEAN")
 
     # 3. 构造完整 Mappings 数组
     print("\n[2/3] 构造 Mappings 数组...")
@@ -134,6 +137,10 @@ def main():
     mappings.append(make_mapping(ia_crouch, "LeftControl"))
     print("  [IMC] IA_Crouch: LeftControl")
 
+    # --- IA_FrostCurse ---
+    mappings.append(make_mapping(ia_frost_curse, "Q"))
+    print("  [IMC] IA_FrostCurse: Q")
+
     # 4. 写入新结构 default_key_mappings
     # 用 unreal.InputMappingContextMappingData 结构体
     dkm = unreal.InputMappingContextMappingData()
@@ -143,7 +150,7 @@ def main():
 
     # 5. 保存
     print("\n[3/3] 保存资产...")
-    for asset in [ia_move, ia_look, ia_jump, ia_fire, ia_crouch, imc]:
+    for asset in [ia_move, ia_look, ia_jump, ia_fire, ia_crouch, ia_frost_curse, imc]:
         unreal.EditorAssetLibrary.save_loaded_asset(asset)
         print(f"  [Save] {asset.get_path_name()}")
 
@@ -151,7 +158,7 @@ def main():
     print("[Xuanming] EnhancedInput 配置完成!")
     print("接下来:")
     print("  1. 跑 VerifyIMC.py 确认每个 mapping 的 modifiers 都在")
-    print("  2. PIE 测试 WASD 方向 / Space / Ctrl / 左键")
+    print("  2. PIE 测试 WASD 方向 / Space / Ctrl / 左键 / Q 冰咒")
     print("=" * 60)
 
 
