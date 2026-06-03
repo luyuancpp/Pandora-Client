@@ -115,6 +115,19 @@ protected:
 	/** 初始化 ASC ActorInfo + (仅 server) Give 启动技能, 幂等 */
 	void InitAbilitySystem();
 	bool bAbilitiesGiven = false;
+	bool bAttributeDelegatesBound = false;
+
+	/**
+	 * 订阅 attribute 变化事件. PostGameplayEffectExecute 只对 Instant GE 触发,
+	 * Duration/Periodic GE 改 attribute 不走那条路, 必须用 OnGameplayAttributeValueChange
+	 * 委托才能捕获 (server 端命中 + client 端 OnRep_MoveSpeed 两个时机都会触发).
+	 *
+	 * 详见 Pitfalls.md: "GAS Duration GE 不触发 PostGameplayEffectExecute".
+	 */
+	void BindAttributeDelegates(UAbilitySystemComponent* ASC);
+
+	/** MoveSpeed attribute 变化 → 同步到 CharacterMovement.MaxWalkSpeed (= 600 * NewValue) */
+	void OnMoveSpeedChanged(const struct FOnAttributeChangeData& Data);
 
 	/** 服务器端生成默认武器并附加到角色 */
 	void SpawnDefaultWeapon();

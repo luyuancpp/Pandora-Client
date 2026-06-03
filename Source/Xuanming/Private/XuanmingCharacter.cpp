@@ -174,18 +174,20 @@ void AXuanmingCharacter::Input_Crouch_Toggled(const FInputActionValue& Value)
 
 void AXuanmingCharacter::Input_FrostCurse_Started(const FInputActionValue& Value)
 {
-	// 通过 ASC 触发技能, 内部走 server 端 ActivateAbility (GA 配的 NetExecutionPolicy 决定)
-	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC)
 	{
-		// TryActivateAbilitiesByClass 走 GA 类查找, 命中 StartupAbilities 里 Given 过的实例
-		// 找不到等价 class API 时, 退化用 GameplayTag (M1.5 先保持 class 查���简洁)
-		for (const TSubclassOf<UGameplayAbility>& AbilityClass : StartupAbilities)
+		return;
+	}
+
+	// 通过 ASC 触发技能, 内部走 server 端 ActivateAbility (GA 配的 NetExecutionPolicy 决定)
+	// 按 class 名匹配 "FrostCurse", 命中 StartupAbilities 里 Given 过的实例 (含 BP 子类).
+	for (const TSubclassOf<UGameplayAbility>& AbilityClass : StartupAbilities)
+	{
+		if (*AbilityClass && AbilityClass->GetName().Contains(TEXT("FrostCurse")))
 		{
-			if (*AbilityClass && AbilityClass->GetDefaultObject<UGameplayAbility>()->GetClass()->GetName().Contains(TEXT("FrostCurse")))
-			{
-				ASC->TryActivateAbilityByClass(AbilityClass);
-				return;
-			}
+			ASC->TryActivateAbilityByClass(AbilityClass);
+			return;
 		}
 	}
 }
@@ -326,6 +328,43 @@ void AXuanmingCharacter::InitAbilitySystem()
 	{
 		Health = AS->GetHealth();
 		MaxHealth = AS->GetMaxHealth();
+	}
+
+	// 绑定 attribute 变化委托 (Duration GE 改 MoveSpeed 不走 PostGEExecute, 必须这条链路)
+	BindAttributeDelegates(ASC);
+}
+
+void AXuanmingCharacter::BindAttributeDelegates(UAbilitySystemComponent* ASC)
+{
+	if (!ASC || bAttributeDelegatesBound)
+	{
+		return;
+	}
+
+	ASC->GetGameplayAttributeValueChangeDelegate(UXuanmingAttributeSet::GetMoveSpeedAttribute())
+		.AddUObject(this, &AXuanmingCharacter::OnMoveSpeedChanged);
+
+	bAttributeDelegatesBound = true;
+
+	// 进入战斗前先按当前 attribute 拉一次, 避免 client 端 OnRep 时机晚于 ASC bind
+	if (const AXuanmingPlayerState* PS = GetPlayerState<AXuanmingPlayerState>())
+	{
+		if (const UXuanmingAttributeSet* AS = PS->GetAttributeSet())
+		{
+			if (UCharacterMovementComponent* Move = GetCharacterMovement())
+			{
+				Move->MaxWalkSpeed = 600.f * AS->GetMoveSpeed();
+			}
+		}
+	}
+}
+
+void AXuanmingCharacter::OnMoveSpeedChanged(const FOnAttributeChangeData& Data)
+{
+	if (UCharacterMovementComponent* Move = GetCharacterMovement())
+	{
+		// 600 = Character 默认 MaxWalkSpeed (见构造函数). MoveSpeed attribute 是 0~5 的乘数.
+		Move->MaxWalkSpeed = 600.f * Data.NewValue;
 	}
 }
 
