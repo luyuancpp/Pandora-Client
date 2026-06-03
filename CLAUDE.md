@@ -78,8 +78,8 @@
 
 ## 当前进度（更新一行）
 
-- **最新里程碑**：M1.5 完成（GAS 框架 + 玄冥冰咒示例技能，C++ 落地，待用户编辑器配蓝图）
-- **下一步**：用户编译 + 配 GameplayTag/IA_FrostCurse/StartupAbilities → M1.x 死亡-重生 + KillFeed + L_Sandbox_01 → 一个月冲刺
+- **最新里程碑**：M1.5 闭环（GAS 框架 + 玄冥冰咒示例技能，PIE 单人 + 朝 Dummy 打别人验证全过；DS+多 Client 留 M1.x）
+- **下一步**：M1.x 死亡-重生 + KillFeed → DS 模式补验冰咒 → 一个月冲刺
 - 历史里程碑详情：`Docs/ClaudeContext/Milestones.md`
 - 一个月冲刺规划：`Docs/ClaudeContext/SprintPlan.md`
 
