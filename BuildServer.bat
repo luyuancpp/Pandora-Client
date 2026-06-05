@@ -5,7 +5,10 @@ REM  Xuanming - Build Dedicated Server (Win64 Development)
 REM ============================================================
 setlocal
 
-set ENGINE_ROOT=F:\work\UnrealEngine
+call "%~dp0Tools\ResolveEngineRoot.bat" || (
+    pause
+    exit /b 1
+)
 set PROJECT_FILE=%~dp0Xuanming.uproject
 
 echo [Xuanming] Building XuanmingServer (Development Win64)...

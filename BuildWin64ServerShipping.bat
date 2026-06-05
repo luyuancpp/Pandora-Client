@@ -5,7 +5,10 @@ REM  Xuanming - Build and Cook Win64 Dedicated Server (Shipping)
 REM ============================================================
 setlocal
 
-set ENGINE_ROOT=F:\work\UnrealEngine
+call "%~dp0Tools\ResolveEngineRoot.bat" || (
+    pause
+    exit /b 1
+)
 set PROJECT_FILE=%~dp0Xuanming.uproject
 set OUTPUT_DIR=%~dp0Build\WindowsServer
 set CONFIG=Shipping

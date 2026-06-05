@@ -8,7 +8,10 @@ REM  这个脚本用 -ddc=NoZenLocalFallback 禁用 Zen，回退到文件系统 
 REM ============================================================
 setlocal
 
-set ENGINE_ROOT=F:\work\UnrealEngine
+call "%~dp0Tools\ResolveEngineRoot.bat" || (
+    pause
+    exit /b 1
+)
 set PROJECT_FILE=%~dp0Xuanming.uproject
 
 echo [Xuanming] Launching Editor (Zen disabled)...

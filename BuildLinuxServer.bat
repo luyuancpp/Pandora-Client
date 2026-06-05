@@ -8,7 +8,10 @@ REM  https://dev.epicgames.com/documentation/zh-cn/unreal-engine/linux-developme
 REM ============================================================
 setlocal
 
-set ENGINE_ROOT=F:\work\UnrealEngine
+call "%~dp0Tools\ResolveEngineRoot.bat" || (
+    pause
+    exit /b 1
+)
 set PROJECT_FILE=%~dp0Xuanming.uproject
 set OUTPUT_DIR=%~dp0Build\LinuxServer
 set CONFIG=Development

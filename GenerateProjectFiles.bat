@@ -13,8 +13,11 @@ REM  before invoking dotnet/UBT.
 REM ============================================================
 setlocal
 
-set ENGINE_ROOT=F:\work\UnrealEngine
 set PROJECT_ROOT=%~dp0
+call "%PROJECT_ROOT%Tools\ResolveEngineRoot.bat" || (
+    pause
+    exit /b 1
+)
 set PROJECT_FILE=%PROJECT_ROOT%Xuanming.uproject
 set UBT_SRC=%ENGINE_ROOT%\Engine\Source\Programs\UnrealBuildTool
 set UBT_DLL=%UBT_SRC%\bin\Development\UnrealBuildTool.dll

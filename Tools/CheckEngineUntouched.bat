@@ -2,7 +2,7 @@
 chcp 65001 > nul
 REM ============================================================
 REM  Engine Purity Check
-REM  Verifies F:\work\UnrealEngine has zero modifications to
+REM  Verifies the configured UnrealEngine checkout has zero modifications to
 REM  git-tracked files. Exits non-zero if violated.
 REM
 REM  Used by GenerateProjectFiles.bat and Build*.bat to fail fast
@@ -15,7 +15,7 @@ REM    [INFO]      Untracked files (build out, .claude, etc) -> allowed
 REM ============================================================
 setlocal
 
-set ENGINE_ROOT=F:\work\UnrealEngine
+call "%~dp0ResolveEngineRoot.bat" || exit /b 1
 
 if not exist "%ENGINE_ROOT%\.git" (
     echo [PurityCheck] WARNING: %ENGINE_ROOT% is not a git repo. Skipping check.

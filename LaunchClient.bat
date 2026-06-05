@@ -10,7 +10,10 @@ REM    LaunchClient.bat 192.168.1.10 8000-> connect to that IP:port
 REM ============================================================
 setlocal
 
-set ENGINE_ROOT=F:\work\UnrealEngine
+call "%~dp0Tools\ResolveEngineRoot.bat" || (
+    pause
+    exit /b 1
+)
 set PROJECT_FILE=%~dp0Xuanming.uproject
 set TARGET_IP=%1
 if "%TARGET_IP%"=="" set TARGET_IP=127.0.0.1

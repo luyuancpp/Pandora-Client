@@ -9,7 +9,10 @@ REM    LaunchServer.bat MyMap            -> uses Content/Maps/MyMap.umap
 REM ============================================================
 setlocal
 
-set ENGINE_ROOT=F:\work\UnrealEngine
+call "%~dp0Tools\ResolveEngineRoot.bat" || (
+    pause
+    exit /b 1
+)
 set PROJECT_FILE=%~dp0Xuanming.uproject
 set MAP_NAME=%1
 if "%MAP_NAME%"=="" set MAP_NAME=L_Whitebox_01
