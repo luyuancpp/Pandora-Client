@@ -1,5 +1,5 @@
 """
-Xuanming - 一键配置 EnhancedInput 资产 (UE 5.7 兼容版)
+Pandora - 一键配置 EnhancedInput 资产 (UE 5.7 兼容版)
 
 在 UE 编辑器里执行: Tools -> Execute Python Script -> 选 Tools/ConfigureInput.py
 
@@ -7,7 +7,7 @@ UE 5.7 关键发现:
   - imc.map_key(ia, key) 只写到旧 deprecated mappings 数组, Modifier 不会同步到新结构
   - 必须直接操作 imc.default_key_mappings.mappings (新 InputMappingContextMappingData 结构)
 
-C++ 端约定 (XuanmingCharacter.cpp:103-104):
+C++ 端约定 (PandoraCharacter.cpp:103-104):
     AddMovementInput(Forward, Axis.Y);  -> Y = 前后
     AddMovementInput(Right,   Axis.X);  -> X = 左���
 期望键盘输出:
@@ -32,7 +32,7 @@ IMC_DEFAULT_PATH = "/Game/Input/IMC_Default"
 def load_asset_or_die(path):
     asset = unreal.EditorAssetLibrary.load_asset(path)
     if asset is None:
-        raise RuntimeError(f"[Xuanming] 找不到资产: {path}")
+        raise RuntimeError(f"[Pandora] 找不到资产: {path}")
     return asset
 
 
@@ -81,7 +81,7 @@ def make_swizzle_yxz(outer):
 # ---------- 主流程 ----------
 def main():
     print("=" * 60)
-    print("[Xuanming] 配置 EnhancedInput 资产 (UE 5.7 新结构)")
+    print("[Pandora] 配置 EnhancedInput 资产 (UE 5.7 新结构)")
     print("=" * 60)
 
     # 1. 加载所有 IA
@@ -155,7 +155,7 @@ def main():
         print(f"  [Save] {asset.get_path_name()}")
 
     print("\n" + "=" * 60)
-    print("[Xuanming] EnhancedInput 配置完成!")
+    print("[Pandora] EnhancedInput 配置完成!")
     print("接下来:")
     print("  1. 跑 VerifyIMC.py 确认每个 mapping 的 modifiers 都在")
     print("  2. PIE 测试 WASD 方向 / Space / Ctrl / 左键 / Q 冰咒")

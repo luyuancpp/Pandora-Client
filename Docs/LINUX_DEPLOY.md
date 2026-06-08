@@ -1,4 +1,4 @@
-# Xuanming Linux Dedicated Server 部署指南
+# Pandora Linux Dedicated Server 部署指南
 
 ## 1. 本地打包（Windows 上交叉编译）
 
@@ -18,16 +18,16 @@ LINUX_MULTIARCH_ROOT=C:\UnrealToolchains\v23_clang-18.1.0-rockylinux8\
 ### 1.2 打包
 
 ```cmd
-F:\work\Xuanming\BuildLinuxServer.bat
+F:\work\Pandora\BuildLinuxServer.bat
 ```
 
 成功后产物位置：
 ```
-F:\work\Xuanming\Build\LinuxServer\LinuxServer\
-├── XuanmingServer.sh            ← 启动脚本
-├── XuanmingServer               ← ELF 二进制（无后缀）
+F:\work\Pandora\Build\LinuxServer\LinuxServer\
+├── PandoraServer.sh            ← 启动脚本
+├── PandoraServer               ← ELF 二进制（无后缀）
 ├── Engine/                      ← 引擎运行时
-└── Xuanming/                    ← 项目内容
+└── Pandora/                    ← 项目内容
     └── Content/Paks/*.pak
 ```
 
@@ -43,45 +43,45 @@ sudo apt update
 sudo apt install -y libc++1 libc++abi1 libsdl2-2.0-0 libvulkan1
 
 # 创建专用用户
-sudo useradd -m -s /bin/bash xuanming
-sudo mkdir -p /opt/xuanming
-sudo chown xuanming:xuanming /opt/xuanming
+sudo useradd -m -s /bin/bash pandora
+sudo mkdir -p /opt/pandora
+sudo chown pandora:pandora /opt/pandora
 ```
 
 ### 2.2 上传
 
 ```bash
 # 在你的开发机执行
-scp -r F:/work/Xuanming/Build/LinuxServer/LinuxServer/* xuanming@<server-ip>:/opt/xuanming/
+scp -r F:/work/Pandora/Build/LinuxServer/LinuxServer/* pandora@<server-ip>:/opt/pandora/
 ```
 
 ### 2.3 启动
 
 ```bash
-ssh xuanming@<server-ip>
-cd /opt/xuanming
-chmod +x XuanmingServer.sh XuanmingServer
-./XuanmingServer.sh -log -port=7777
+ssh pandora@<server-ip>
+cd /opt/pandora
+chmod +x PandoraServer.sh PandoraServer
+./PandoraServer.sh -log -port=7777
 ```
 
 ## 3. 用 systemd 守护进程（生产环境）
 
-创建 `/etc/systemd/system/xuanming.service`：
+创建 `/etc/systemd/system/pandora.service`：
 
 ```ini
 [Unit]
-Description=Xuanming Dedicated Server
+Description=Pandora Dedicated Server
 After=network.target
 
 [Service]
 Type=simple
-User=xuanming
-WorkingDirectory=/opt/xuanming
-ExecStart=/opt/xuanming/XuanmingServer.sh -log -port=7777
+User=pandora
+WorkingDirectory=/opt/pandora
+ExecStart=/opt/pandora/PandoraServer.sh -log -port=7777
 Restart=on-failure
 RestartSec=5s
-StandardOutput=append:/var/log/xuanming/server.log
-StandardError=append:/var/log/xuanming/server.err
+StandardOutput=append:/var/log/pandora/server.log
+StandardError=append:/var/log/pandora/server.err
 
 [Install]
 WantedBy=multi-user.target
@@ -89,18 +89,18 @@ WantedBy=multi-user.target
 
 启用：
 ```bash
-sudo mkdir -p /var/log/xuanming
-sudo chown xuanming:xuanming /var/log/xuanming
+sudo mkdir -p /var/log/pandora
+sudo chown pandora:pandora /var/log/pandora
 sudo systemctl daemon-reload
-sudo systemctl enable xuanming
-sudo systemctl start xuanming
-sudo systemctl status xuanming
+sudo systemctl enable pandora
+sudo systemctl start pandora
+sudo systemctl status pandora
 ```
 
 查看日志：
 ```bash
-sudo journalctl -u xuanming -f
-tail -f /var/log/xuanming/server.log
+sudo journalctl -u pandora -f
+tail -f /var/log/pandora/server.log
 ```
 
 ## 4. 防火墙
@@ -120,7 +120,7 @@ sudo firewall-cmd --reload
 
 ```cmd
 # Windows 客户端连接公网服务器
-XuanmingClient.exe <server-ip>:7777 -game
+PandoraClient.exe <server-ip>:7777 -game
 ```
 
 ## 6. 多服节点架构（后期规划）

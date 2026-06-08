@@ -8,7 +8,7 @@ import unreal
 
 def main():
     print("=" * 60)
-    print("[Xuanming] UE 5.7 EnhancedInput API 探测 v2")
+    print("[Pandora] UE 5.7 EnhancedInput API 探测 v2")
     print("=" * 60)
 
     # 1. 找所有可能用来构造 FKey 的类型

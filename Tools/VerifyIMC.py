@@ -25,7 +25,7 @@ def dump_struct(s, indent=2):
 
 def main():
     print("=" * 60)
-    print("[Xuanming] 验证 IMC_Default 实际内容")
+    print("[Pandora] 验证 IMC_Default 实际内容")
     print("=" * 60)
 
     imc = unreal.EditorAssetLibrary.load_asset("/Game/Input/IMC_Default")

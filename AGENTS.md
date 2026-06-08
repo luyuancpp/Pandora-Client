@@ -1,4 +1,4 @@
-# Xuanming（玄冥）— Codex 上下文
+# Pandora（Pandora）— Codex 上下文
 
 > 这个文件是给 Codex 看的项目上下文摘要。新会话开始时会自动读入。
 > 用户视角的完整文档在 `README.md`。
@@ -7,10 +7,10 @@
 
 ## 项目定位
 
-- **名字**：Xuanming（玄冥）—— 仙道风英文代号 + 现代军事 FPS 玩法（反差搭配）
+- **名字**：Pandora（Pandora）—— 仙道风英文代号 + 现代军事 FPS 玩法（反差搭配）
 - **玩法对标**：腾讯《三角洲行动》手游，战术 FPS、多人对战
 - **架构**：Unreal Engine 5.7.4 源码版 + Dedicated Server + Client
-- **仓库**：https://github.com/luyuancpp/Xuanming（public）
+- **仓库**：https://github.com/luyuancpp/Pandora（public）
 - **状态**：项目骨架完成，可生成 VS 工程，未完成 Editor 编译
 
 **重要：用户希望做一款"上线运营"的游戏**。但他/她也理解类似规模的游戏需要 30+ 人团队、亿级预算、数年时间。这个仓库只是**正确的工程起点**，不是游戏本体。
@@ -20,9 +20,9 @@
 | 路径 | 内容 |
 |---|---|
 | `F:\work\UnrealEngine` | UE 5.7.4 源码版引擎（**绝对不要改任何 tracked 文件**） |
-| `F:\work\Xuanming` | 项目根目录（本仓库） |
-| `F:\work\Xuanming\.Codex` | Codex 会话状态（已 gitignored） |
-| `F:\work\UnrealEngine\.Codex` | **Junction → Xuanming/.Codex**，引擎里物理上不存在真实数据 |
+| `F:\work\Pandora` | 项目根目录（本仓库） |
+| `F:\work\Pandora\.Codex` | Codex 会话状态（已 gitignored） |
+| `F:\work\UnrealEngine\.Codex` | **Junction → Pandora/.Codex**，引擎里物理上不存在真实数据 |
 
 ## 最高指令：不动引擎源码
 
@@ -31,7 +31,7 @@
 执行这条规则的机制：
 
 1. **`Tools/CheckEngineUntouched.bat`** —— 每次构建前检查 `git status --porcelain` 过滤 `??` 之外的项，发现就 abort
-2. **Junction**：`UnrealEngine/.Codex → Xuanming/.Codex`，让 Codex 写入透明重定向
+2. **Junction**：`UnrealEngine/.Codex → Pandora/.Codex`，让 Codex 写入透明重定向
 3. **pre-commit hook**：装在 `UnrealEngine/.git/hooks/pre-commit`，阻断任何 `.Codex/` 路径的 commit
 4. **`Tools/SetupEngineGuards.bat`** 一键复现（幂等）
 5. **`global.json` 放在项目目录**：dotnet 从工作目录向上查找，所以引擎仓库**不需要**也**不要**放 global.json
@@ -48,7 +48,7 @@
 | `LogStreaming: Warning: Failed to read file 'doc_16x.png'` 等图标缺失 | 引擎 Slate 资源 | **忽略**。引擎自带、与项目无关 |
 | `LogWindows: Failed to load 'aqProf.dll' / 'VtuneApi.dll' / 'Wintab32.dll'` | 引擎试探可选探查 dll | **忽略**。本机没装就略过，不影响功能 |
 | `PixWinPlugin: PIX capture plugin failed to initialize` | 引擎自带 PIX 插件 | **忽略**。除非你真打算用 PIX |
-| VS2026 编整个 sln 13 个失败（SlateViewer / Catch2 / AutoRTFMTests） | 引擎自带工具/测试 | **不要编整个 sln**，右键单独编 `Xuanming` 项目即可 |
+| VS2026 编整个 sln 13 个失败（SlateViewer / Catch2 / AutoRTFMTests） | 引擎自带工具/测试 | **不要编整个 sln**，右键单独编 `Pandora` 项目即可 |
 
 **判定标准**：如果"修这个"的成本是"动引擎 tracked 文件"，那就**不修**。即使警告每次编译都刷屏 26 行，也比破坏"零引擎改动"的红线划算——后者一旦破坏：
 - 升级 UE（5.7.5 → 5.8 → ...）每次都得人工 merge 冲突
@@ -58,7 +58,7 @@
 
 **正确的 workaround 方向**（按优先级）：
 1. 项目侧脚本（.bat/.py/Build.cs）绕开问题
-2. 项目侧加 C++ 工具类（如 `UXuanmingSocketTools`，绕开 Python 反射限制）
+2. 项目侧加 C++ 工具类（如 `UPandoraSocketTools`，绕开 Python 反射限制）
 3. 项目侧 `Directory.Build.props` / `.editorconfig` / `<NoWarn>` 屏蔽噪声
 4. 文档化"已知噪声"让团队知道这是预期行为
 5. **真要改引擎**：先在这个表里加一行、说清成本、用户书面同意、单独建一个引擎 fork 分支，且每次升级前重新审视
@@ -66,31 +66,31 @@
 ## 已实现的 C++ 模块
 
 ```
-Source/Xuanming/
-├── XuanmingGameMode      服务器权威规则、登入登出
-├── XuanmingGameState     全局状态（比赛计时，已 Replicate）
-├── XuanmingPlayerController  EnhancedInput 上下文注册
-├── XuanmingPlayerState   K/D/队伍数据（已 Replicate）
-├── XuanmingCharacter     FPS 角色 + 移动/视角/跳跃/蹲伏/开火 + 血量同步
-├── XuanmingWeapon        hitscan 武器、Server RPC、Multicast 特效、散布、射速、弹匣
-└── XuanmingHUD           Canvas 准星、血条、弹药
+Source/Pandora/
+├── PandoraGameMode      服务器权威规则、登入登出
+├── PandoraGameState     全局状态（比赛计时，已 Replicate）
+├── PandoraPlayerController  EnhancedInput 上下文注册
+├── PandoraPlayerState   K/D/队伍数据（已 Replicate）
+├── PandoraCharacter     FPS 角色 + 移动/视角/跳跃/蹲伏/开火 + 血量同步
+├── PandoraWeapon        hitscan 武器、Server RPC、Multicast 特效、散布、射速、弹匣
+└── PandoraHUD           Canvas 准星、血条、弹药
 ```
 
 所有网络相关类已配好 Replication，服务器权威设计。
 
 ## 4 个 Target
 
-- `Xuanming.Target.cs` (Game)
-- `XuanmingEditor.Target.cs`
-- `XuanmingServer.Target.cs` (Dedicated Server)
-- `XuanmingClient.Target.cs`
+- `Pandora.Target.cs` (Game)
+- `PandoraEditor.Target.cs`
+- `PandoraServer.Target.cs` (Dedicated Server)
+- `PandoraClient.Target.cs`
 
 ## 构建工具链
 
 ### 必装环境
 - **Visual Studio 2026**（C++ 游戏开发工作负载）—— 用户实测可用，UE 5.7.4 release 内部已识别 VS18 toolchain（`MSVC 14.44.x`）
   - 也可用 VS2022，切换方式：`set VS_VERSION=2022 && GenerateProjectFiles.bat`
-  - **不要**编整个解决方案，VS2026 下引擎自带的 `SlateViewer` / Catch2 测试会失败（与项目无关），右键单独编 `Xuanming` 项目即可
+  - **不要**编整个解决方案，VS2026 下引擎自带的 `SlateViewer` / Catch2 测试会失败（与项目无关），右键单独编 `Pandora` 项目即可
 - **.NET 8 SDK**（必须，UE 5.7 的 .Build.cs 用了 C# 12 集合表达式 `[...]`）
   - 安装：`winget install Microsoft.DotNet.SDK.8`
   - .NET 10 / .NET 9 都不行
@@ -99,7 +99,7 @@ Source/Xuanming/
 
 ### 项目级 .NET 锁定
 
-`F:\work\Xuanming\global.json`：
+`F:\work\Pandora\global.json`：
 ```json
 { "sdk": { "version": "8.0.100", "rollForward": "latestFeature" } }
 ```
@@ -140,10 +140,10 @@ UE 5.7.4 release 自带的 `Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTo
 我无法替用户在编辑器里点鼠标。用户需要：
 
 1. 在 `Content/` 下右键创建蓝图：
-   - `BP_XuanmingCharacter` 继承 `XuanmingCharacter`
-   - `BP_XuanmingWeapon_AK` 继承 `XuanmingWeapon`
-   - `BP_XuanmingPlayerController` 继承 `XuanmingPlayerController`
-   - `BP_XuanmingGameMode` 继承 `XuanmingGameMode`
+   - `BP_PandoraCharacter` 继承 `PandoraCharacter`
+   - `BP_PandoraWeapon_AK` 继承 `PandoraWeapon`
+   - `BP_PandoraPlayerController` 继承 `PandoraPlayerController`
+   - `BP_PandoraGameMode` 继承 `PandoraGameMode`
 
 2. 创建 EnhancedInput 资产：
    - `IMC_Default`（InputMappingContext）
@@ -151,10 +151,10 @@ UE 5.7.4 release 自带的 `Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTo
    - 在 IMC 里绑键：WASD→IA_Move、鼠标→IA_Look、Space→IA_Jump、鼠标左键→IA_Fire、Ctrl→IA_Crouch
 
 3. 配置：
-   - `BP_XuanmingPlayerController.DefaultMappingContext = IMC_Default`
-   - `BP_XuanmingCharacter` 指派 IA_* + `DefaultWeaponClass = BP_XuanmingWeapon_AK`
-   - `BP_XuanmingGameMode.DefaultPawnClass = BP_XuanmingCharacter` + `PlayerControllerClass = BP_XuanmingPlayerController`
-   - `Project Settings → Maps & Modes → Default GameMode = BP_XuanmingGameMode`
+   - `BP_PandoraPlayerController.DefaultMappingContext = IMC_Default`
+   - `BP_PandoraCharacter` 指派 IA_* + `DefaultWeaponClass = BP_PandoraWeapon_AK`
+   - `BP_PandoraGameMode.DefaultPawnClass = BP_PandoraCharacter` + `PlayerControllerClass = BP_PandoraPlayerController`
+   - `Project Settings → Maps & Modes → Default GameMode = BP_PandoraGameMode`
 
 4. 角色 Mesh 上加一个 `WeaponSocket`（武器挂点），否则 `SpawnDefaultWeapon` 时挂载失败。
 
@@ -171,10 +171,10 @@ UE 5.7.4 release 自带的 `Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTo
 **M1.1 完成** (2026-05-29)：白盒角色已就位
 - ✅ Mannequin 资产复制到 `Content/Characters/Mannequins/` (49 个 .uasset, 93MB)
 - ✅ ABP_Unarmed 编译通过 (141ms)
-- ✅ BP_XuanmingCharacter 蓝图：Mesh=SKM_Manny_Simple, AnimClass=ABP_Unarmed
+- ✅ BP_PandoraCharacter 蓝图：Mesh=SKM_Manny_Simple, AnimClass=ABP_Unarmed
   - Mesh Transform: Location=(0,0,-88), Rotation=(0,0,-90)（FPS 标准朝向）
   - Mesh.bOwnerNoSee=true（第一人称隐藏自己，业界惯例）
-- ✅ BP_XuanmingGameMode + BP_XuanmingPlayerController 蓝图链路完整
+- ✅ BP_PandoraGameMode + BP_PandoraPlayerController 蓝图链路完整
 
 **M1.2 完成** (2026-05-29)：EnhancedInput 全部接通
 - ✅ 5 个 IA：Move/Look (Axis2D) + Jump/Fire/Crouch (bool)
@@ -182,30 +182,30 @@ UE 5.7.4 release 自带的 `Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTo
 - ✅ 用 `Tools/ConfigureInput.py` Python 脚本一键配置（避免手动配 Modifier 出错）
 
 **M1.3 完成** (2026-05-30)：BP_Weapon_AK + WeaponSocket 全链路通
-- ✅ C++ `XuanmingWeapon::WeaponMesh` 改 `UStaticMeshComponent`（接 placeholder Cube）
-- ✅ C++ 新增 `UXuanmingSocketTools::AddWeaponSocketToMesh`（BlueprintCallable, WITH_EDITOR）
+- ✅ C++ `PandoraWeapon::WeaponMesh` 改 `UStaticMeshComponent`（接 placeholder Cube）
+- ✅ C++ 新增 `UPandoraSocketTools::AddWeaponSocketToMesh`（BlueprintCallable, WITH_EDITOR）
   - 绕开 UE 5.7 Python 对 `BlueprintReadOnly` 字段的写禁止
   - C++ 端裸字段赋值 + `AddSocket(bAddToSkeleton=true)` + `NumSockets` 校验
 - ✅ `Tools/AddWeaponSocket.py` 在 SKM_Manny_Simple 上加 WeaponSocket（hand_r, 偏移 (10,4,-2) Yaw=90）
-- ✅ `Tools/CreateWeaponBP.py` 建 `Content/Weapons/BP_Weapon_AK`（继承 AXuanmingWeapon）
+- ✅ `Tools/CreateWeaponBP.py` 建 `Content/Weapons/BP_Weapon_AK`（继承 APandoraWeapon）
   - WeaponMesh = `/Engine/BasicShapes/Cube`, scale=(0.5, 0.1, 0.1)
-  - BP_XuanmingCharacter.DefaultWeaponClass = BP_Weapon_AK
+  - BP_PandoraCharacter.DefaultWeaponClass = BP_Weapon_AK
 - ✅ PIE 验证：右手有 Cube placeholder AK，鼠标左键开火出 DrawDebugLine
 - ⚠️ 准星和命中反馈缺失（白盒角色没参照物难瞄）→ M1.4 UMG HUD 解决
 
 **M1.4 代码完成** (2026-05-30)：UMG HUD 走 **MVVM 路线**，链路就绪，待用户编 Editor + 跑脚本 + Designer 手搭 + 配 MVVM
-- ✅ C++ `AXuanmingHUD` 降级为占位（DrawHUD 清空，类保留作 GameMode HUDClass 默认指派）
-- ✅ `Xuanming.uproject` 启用 `ModelViewViewModel` 插件
-- ✅ `Source/Xuanming/Xuanming.Build.cs` 加 `ModelViewViewModel` + `FieldNotification` 模块依赖
-- ✅ C++ 新增 `UXuanmingPlayerViewModel : UMVVMViewModelBase`：
+- ✅ C++ `APandoraHUD` 降级为占位（DrawHUD 清空，类保留作 GameMode HUDClass 默认指派）
+- ✅ `Pandora.uproject` 启用 `ModelViewViewModel` 插件
+- ✅ `Source/Pandora/Pandora.Build.cs` 加 `ModelViewViewModel` + `FieldNotification` 模块依赖
+- ✅ C++ 新增 `UPandoraPlayerViewModel : UMVVMViewModelBase`：
   - 4 个 `FieldNotify` 字段：`Health` / `MaxHealth` / `CurrentAmmo` / `MagazineSize`
     （Setter 用 `UE_MVVM_SET_PROPERTY_VALUE` 宏，自动比较新旧值 + 不变就不广播）
   - 3 个 `FieldNotify` 派生 UFUNCTION：`GetHealthPercent` / `GetHealthText` / `GetAmmoText`
     （用 `meta=(FieldNotifyDependencies="Health,MaxHealth")` 让 MVVM 编译器跟踪依赖自动重算）
-- ✅ C++ `AXuanmingPlayerController`：
+- ✅ C++ `APandoraPlayerController`：
   - 加 `HUDWidgetClass` + `HUDWidget` + `PlayerViewModel` + `PlayerViewModelName="PlayerViewModel"` 字段
   - `TryCreateHUD(From)` 复用 IMC "三时机兜底" 模式 (`BeginPlay` / `AcknowledgePossession` / `OnPossess`)
-    + 创建 widget 后立即 `NewObject<UXuanmingPlayerViewModel>(this)` + `TryInjectViewModel`
+    + 创建 widget 后立即 `NewObject<UPandoraPlayerViewModel>(this)` + `TryInjectViewModel`
   - `TryInjectViewModel`：通过 `UMVVMSubsystem::GetViewFromUserWidget(HUDWidget)` 拿 `UMVVMView`，
     再 `View->SetViewModel(PlayerViewModelName, PlayerViewModel)`
   - `PlayerTick` 每帧 `PushStateToViewModel`（把 Pawn.Health / Weapon.CurrentAmmo 推到 ViewModel）；
@@ -213,16 +213,16 @@ UE 5.7.4 release 自带的 `Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTo
   - `EndPlay` 清理 `HUDWidget->RemoveFromParent()` + `PlayerViewModel = nullptr`
 - ✅ `Tools/CreateHUDWidgets.py` 简化为：
   - 幂等创建 `/Game/UI/WBP_PlayerHUD`（空控件树）
-  - 自动配 `BP_XuanmingPlayerController.HUDWidgetClass = WBP_PlayerHUD.GeneratedClass`
+  - 自动配 `BP_PandoraPlayerController.HUDWidgetClass = WBP_PlayerHUD.GeneratedClass`
   - main() 末尾打印详尽 Designer + MVVM 操作指南（替代原 WidgetTree 自动化，已确认 UE 5.7 反射搞不定）
 - ⏳ 待用户操作：
   1. `GenerateProjectFiles.bat`（uproject 加了插件，需重生 sln）
-  2. VS 右键 `Xuanming` 项目 Build
+  2. VS 右键 `Pandora` 项目 Build
   3. `LaunchEditor.bat` 启动 Editor（首次编 MVVM 插件 1-2 分钟）
   4. `Tools → Execute Python Script → Tools/CreateHUDWidgets.py`
   5. **Designer 拖控件树**（5 分钟）：Crosshair / HealthBar / HealthText / AmmoText 四个控件 + 锚点位置（脚本输出指南有详细坐标）
   6. **MVVM 面板配置**（5 分钟）：`Window → View Bindings`：
-     - 加 ViewModel：Class=`XuanmingPlayerViewModel`、Name=`PlayerViewModel`、Creation Type=`Manual`
+     - 加 ViewModel：Class=`PandoraPlayerViewModel`、Name=`PlayerViewModel`、Creation Type=`Manual`
      - 加 3 条 Binding：`HealthBar.Percent ← HealthPercent`、`HealthText.Text ← HealthText`、`AmmoText.Text ← AmmoText`
   7. PIE 验证：准星 + 血条 + 弹药、开火 AMMO 递减、受击血条短缩
 - ⚠️ KillFeed 挂账：移到 M1.5 之后单独做（需 GameMode 击杀广播 + Multicast 事件 + 队伍判定）
@@ -237,10 +237,10 @@ UE 5.7.4 release 自带的 `Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTo
 ### M1 剩余子里程碑（FPS PoC 路线图）
 
 ```
-M1.5 GAS 框架 + 玄冥冰咒示例技能           3-5 天
+M1.5 GAS 框架 + Pandora冰咒示例技能           3-5 天
   - 启用 GameplayAbilities 插件（uproject + Build.cs）
   - Character 加 ASC + AttributeSet (HP/Mana/Speed/Damage)
-  - GA_XuanmingFrostCurse：按 Q 释放，对前方目标施加 GE_Slow（速度 -50% × 3s）
+  - GA_PandoraFrostCurse：按 Q 释放，对前方目标施加 GE_Slow（速度 -50% × 3s）
   - 这是仙道 vs 现代 FPS 反差的差异化核心
 
 M1.x KillFeed（M1.5 后插入）                1 天
@@ -261,7 +261,7 @@ M1.x KillFeed（M1.5 后插入）                1 天
 1. EOS（Epic Online Services）公网匹配集成（需注册 Epic 开发者拿 ProductID/SandboxID）
 2. 后端服务（Go/Java 账号 + 匹配服）
 3. CI/CD（GitHub Actions 自动编译 DS）
-4. 商标查询（"玄冥"在中国商标网）+ 域名注册
+4. 商标查询（"Pandora"在中国商标网）+ 域名注册
 5. 美术外包对接（M2 阶段换正式角色资产，按 SK_Mannequin 标准骨架做就零改动替换）
 6. **Git LFS**：`.gitattributes` 已配 `*.uasset filter=lfs`，但本机 git-lfs 未装。
    M2 前补装：`winget install GitHub.GitLFS` → `git lfs install` → `git lfs migrate import --include="*.uasset,*.umap"`
@@ -324,12 +324,12 @@ M1.x KillFeed（M1.5 后插入）                1 天
 | .bat 默认 GBK 编码，UTF-8 中文注释会报"al 不是命令" | 所有 .bat 顶部 `chcp 65001 > nul`，注释用英文 |
 | dotnet 残留进程锁住 dll，导致 build 失败 | build 前 `Get-Process dotnet,MSBuild,VBCSCompiler | Stop-Process -Force` |
 | Setup.bat 在沙箱环境立刻 exit 0，啥都没做 | 直接调 `Engine/Binaries/DotNET/GitDependencies/win-x64/GitDependencies.exe --force --threads=8` |
-| GitHub HTTPS 被国内运营商重置 | 用 SSH remote：`git@github.com:luyuancpp/Xuanming.git`（已配好） |
+| GitHub HTTPS 被国内运营商重置 | 用 SSH remote：`git@github.com:luyuancpp/Pandora.git`（已配好） |
 | UE 自带 .NET 8.0.412 在 Windows 缺 host/fxr 目录 | 不用它，用系统的 .NET 8 SDK（项目级 global.json 锁定 8.0.100） |
 | `git reset --hard origin/release` 会丢失本地未推送 commit | 先 `git reflog` 找回；这次没造成永久损失 |
 | UE 5.7.4 release csproj 引用 props 文件但仓库里没有 | GitDependencies 会拉，但必须等它完整跑完（30 分钟+） |
-| VS2026 下编整个解决方案有 13 个失败（Catch2 测试 / SlateViewer / AutoRTFMTests） | 引擎自带工具问题，**与项目无关**；右键只编 `Xuanming` 项目，自动按依赖带上 UnrealEditor |
-| Target.cs 用 `BuildSettingsVersion.V5` 编 Editor 报 `XuanmingEditor modifies the values of properties` | UE 5.7 默认 V6，必须升级所有 4 个 Target.cs 到 V6 |
+| VS2026 下编整个解决方案有 13 个失败（Catch2 测试 / SlateViewer / AutoRTFMTests） | 引擎自带工具问题，**与项目无关**；右键只编 `Pandora` 项目，自动按依赖带上 UnrealEditor |
+| Target.cs 用 `BuildSettingsVersion.V5` 编 Editor 报 `PandoraEditor modifies the values of properties` | UE 5.7 默认 V6，必须升级所有 4 个 Target.cs 到 V6 |
 | V6 升级后 `error C4458: "Owner"的声明隐藏了类成员` | 局部变量名和 `AActor::Owner` 冲突；改为 `OwnerChar` 等明确名字 |
 | 启动 Editor 崩在 `FDerivedDataBackendGraph` 行 217 | ZenServer HTTP 服务在 `[::1]` 起不来；用 `-ddc=NoZenLocalFallback` 禁掉 Zen，走文件系统 DDC。已封装在 `LaunchEditor.bat` 里 |
 | 真 DS 模式 (LaunchServer.bat) WASD 不响应，PIE 多人正常 | `GlobalDefaultServerGameMode` 必须也指向 BP_GameMode；之前还是 C++ 裸类导致 DS 端 PC/Pawn 都是 C++ 裸类，蓝图层 IA 字段全 nullptr |
@@ -337,10 +337,10 @@ M1.x KillFeed（M1.5 后插入）                1 天
 | Python 创建的 UE 对象（modifier 等）保存后丢失 | `unreal.new_object(Class)` 默认 outer = `/Engine/Transient/`，序列化时被丢弃。**必须**传 `outer=父资产`，例如 `unreal.new_object(InputModifierNegate, outer=imc)`，对象才会作为父资产子对象持久化 |
 | UE5 Manny 资产命名陷阱：`SK_Mannequin` 是 USkeleton，`SKM_Manny_Simple` 才是 USkeletalMesh | 反直觉但是 Epic 的命名约定。socket / 骨骼相关脚本要先 `isinstance` 守卫，挂错类型会一直走死路 |
 | `USkeleton.Sockets` Python 读不到，报 "is protected and cannot be read" | UPROPERTY 没标 BlueprintReadOnly。**不要**直接操作 USkeleton.sockets，改走 `USkeletalMesh.AddSocket(socket, bAddToSkeleton=true)`——这条是 BlueprintCallable，bAddToSkeleton 会自动镜像进 Skeleton |
-| `USkeletalMeshSocket` 所有字段 `BlueprintReadOnly`，Python 写不进 | `set_editor_property`、attribute 赋值都被拒，因为 Python 反射走 BP 可写性检查。**唯一解**：C++ 写一�� `UFUNCTION(BlueprintCallable)` 工具函数（如 `UXuanmingSocketTools::AddWeaponSocketToMesh`），裸字段赋值不走反射检查。同理适用于其他 BlueprintReadOnly + EditAnywhere 字段 |
+| `USkeletalMeshSocket` 所有字段 `BlueprintReadOnly`，Python 写不进 | `set_editor_property`、attribute 赋值都被拒，因为 Python 反射走 BP 可写性检查。**唯一解**：C++ 写一�� `UFUNCTION(BlueprintCallable)` 工具函数（如 `UPandoraSocketTools::AddWeaponSocketToMesh`），裸字段赋值不走反射检查。同理适用于其他 BlueprintReadOnly + EditAnywhere 字段 |
 | UE 5.7 `USkeletalMesh::AddSocket` 严格检查 socket outer 必须是 SkeletalMesh，否则 log error 但 void 返回不抛异常 | `NewObject<USkeletalMeshSocket>(SkeletalMesh)` outer 设 Mesh，传 `bAddToSkeleton=true` 让引擎内部自己复制一份到 Skeleton。**调用后必须**用 `NumSockets()` before/after 校验是否真加进去——UE 这种"void 返回但只 log error"的 API 必须用副作用校验做闸门 |
 | Python `SceneComponent.set_relative_location(loc)` 报 `required argument 'sweep' (pos 2) not found` | 这是运行时 API，sweep/teleport 必填。**编辑 CDO 默认值**走 `set_editor_property("relative_location", ...)` / `set_editor_property("relative_scale3d", ...)`，符合"编辑默认值"语义 |
-| UE 5.7 `WidgetBlueprint.WidgetTree` 是 protected 字段，Python `get_editor_property("WidgetTree")` 抛 "is protected and cannot be read" | 同 `USkeleton.Sockets` 那类反射坑。理论上可写 C++ `UXuanmingUITools::GetWidgetTree` 工具函数绕开（同 SocketTools 套路），但**UMG 控件树本来就是高频迭代品**（美术每天调样式），Epic 官方 *UMG Best Practices* 也明确推荐 Designer 手搭——脚本只建 WBP + 链 PC.HUDWidgetClass，控件树交给用户 5 分钟手点。这条"不修"是设计决策不是妥协 |
+| UE 5.7 `WidgetBlueprint.WidgetTree` 是 protected 字段，Python `get_editor_property("WidgetTree")` 抛 "is protected and cannot be read" | 同 `USkeleton.Sockets` 那类反射坑。理论上可写 C++ `UPandoraUITools::GetWidgetTree` 工具函数绕开（同 SocketTools 套路），但**UMG 控件树本来就是高频迭代品**（美术每天调样式），Epic 官方 *UMG Best Practices* 也明确推荐 Designer 手搭——脚本只建 WBP + 链 PC.HUDWidgetClass，控件树交给用户 5 分钟手点。这条"不修"是设计决策不是妥协 |
 | UMG 函数 Binding 性能陷阱 | `HealthBar.Percent → Bind Function` 每帧 Tick 调用（10 个 binding × 60fps = 600 次/秒蓝图 VM）。**全项目禁用**，改 MVVM (`UMVVMViewModelBase` + `UE_MVVM_SET_PROPERTY_VALUE` ���)，只在数据变化时广播 |
 
 ## 用户偏好

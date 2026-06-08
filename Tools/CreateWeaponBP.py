@@ -1,14 +1,14 @@
 """
-Xuanming - 创建 BP_Weapon_AK + 链到 BP_XuanmingCharacter（M1.3）
+Pandora - 创建 BP_Weapon_AK + 链到 BP_PandoraCharacter（M1.3）
 
 在 UE 编辑器里执行:
   Tools -> Execute Python Script -> 选 Tools/CreateWeaponBP.py
 
 做的事:
-  1. 创建 /Game/Weapons/BP_Weapon_AK（继承自 AXuanmingWeapon C++ 类），幂等
+  1. 创建 /Game/Weapons/BP_Weapon_AK（继承自 APandoraWeapon C++ 类），幂等
   2. 给 WeaponMesh 组件赋值引擎自带 /Engine/BasicShapes/Cube
   3. 把 Cube 缩放成枪状（细长）
-  4. 给 BP_XuanmingCharacter 的 CDO 设 DefaultWeaponClass = BP_Weapon_AK
+  4. 给 BP_PandoraCharacter 的 CDO 设 DefaultWeaponClass = BP_Weapon_AK
   5. 保存
 
 为什么不用 SubobjectDataSubsystem 改 BP 子组件:
@@ -17,8 +17,8 @@ Xuanming - 创建 BP_Weapon_AK + 链到 BP_XuanmingCharacter（M1.3）
     （在 BP CDO 上 set_editor_property 即可）
 
 依赖:
-  - AXuanmingWeapon C++ 类已编译进 Editor（M1.3 改了 WeaponMesh 类型，必须先编 Editor）
-  - BP_XuanmingCharacter 已存在（M1.1 完成）
+  - APandoraWeapon C++ 类已编译进 Editor（M1.3 改了 WeaponMesh 类型，必须先编 Editor）
+  - BP_PandoraCharacter 已存在（M1.1 完成）
 """
 
 import unreal
@@ -29,7 +29,7 @@ WEAPON_BP_PATH    = "/Game/Weapons/BP_Weapon_AK"
 WEAPON_BP_FOLDER  = "/Game/Weapons"
 WEAPON_BP_NAME    = "BP_Weapon_AK"
 
-CHARACTER_BP_PATH = "/Game/Characters/BP_XuanmingCharacter"
+CHARACTER_BP_PATH = "/Game/Characters/BP_PandoraCharacter"
 
 CUBE_MESH_PATH    = "/Engine/BasicShapes/Cube"
 
@@ -46,12 +46,12 @@ def load_or_die(path):
     return a
 
 
-def get_xuanming_weapon_class():
-    """加载 C++ AXuanmingWeapon 类作为父类"""
-    cls = unreal.load_class(None, "/Script/Xuanming.XuanmingWeapon")
+def get_pandora_weapon_class():
+    """加载 C++ APandoraWeapon 类作为父类"""
+    cls = unreal.load_class(None, "/Script/Pandora.PandoraWeapon")
     if cls is None:
         raise RuntimeError(
-            "找不到 AXuanmingWeapon 类。Editor 是不是还没编 M1.3 的 C++ 改动？"
+            "找不到 APandoraWeapon 类。Editor 是不是还没编 M1.3 的 C++ 改动？"
         )
     return cls
 
@@ -70,7 +70,7 @@ def create_weapon_bp():
         print(f"  [Skip] {WEAPON_BP_PATH} 已存在，复用")
         return load_or_die(WEAPON_BP_PATH)
 
-    parent_class = get_xuanming_weapon_class()
+    parent_class = get_pandora_weapon_class()
 
     factory = unreal.BlueprintFactory()
     factory.set_editor_property("parent_class", parent_class)
@@ -97,7 +97,7 @@ def configure_weapon_bp(bp):
     weapon_mesh_comp = cdo.get_editor_property("WeaponMesh")
     if weapon_mesh_comp is None:
         raise RuntimeError(
-            "CDO 上没 WeaponMesh 组件。AXuanmingWeapon C++ 是不是没编进去？"
+            "CDO 上没 WeaponMesh 组件。APandoraWeapon C++ 是不是没编进去？"
         )
 
     # 赋值 Cube
@@ -113,20 +113,20 @@ def configure_weapon_bp(bp):
 
 
 def link_to_character(weapon_bp):
-    """改 BP_XuanmingCharacter.DefaultWeaponClass = BP_Weapon_AK"""
+    """改 BP_PandoraCharacter.DefaultWeaponClass = BP_Weapon_AK"""
     char_bp = load_or_die(CHARACTER_BP_PATH)
     char_cdo = unreal.get_default_object(char_bp.generated_class())
     if char_cdo is None:
-        raise RuntimeError("拿不到 BP_XuanmingCharacter CDO")
+        raise RuntimeError("拿不到 BP_PandoraCharacter CDO")
 
     char_cdo.set_editor_property("DefaultWeaponClass", weapon_bp.generated_class())
-    print(f"  [Link] BP_XuanmingCharacter.DefaultWeaponClass = {WEAPON_BP_NAME}")
+    print(f"  [Link] BP_PandoraCharacter.DefaultWeaponClass = {WEAPON_BP_NAME}")
     return char_bp
 
 
 def main():
     print("=" * 60)
-    print("[Xuanming] M1.3 创建 BP_Weapon_AK")
+    print("[Pandora] M1.3 创建 BP_Weapon_AK")
     print("=" * 60)
 
     print("\n[1/4] 创建 BP_Weapon_AK")
@@ -135,7 +135,7 @@ def main():
     print("\n[2/4] 配置 WeaponMesh 默认值（挂 Cube）")
     configure_weapon_bp(weapon_bp)
 
-    print("\n[3/4] 链到 BP_XuanmingCharacter.DefaultWeaponClass")
+    print("\n[3/4] 链到 BP_PandoraCharacter.DefaultWeaponClass")
     char_bp = link_to_character(weapon_bp)
 
     print("\n[4/4] 保存")
@@ -144,11 +144,11 @@ def main():
         print(f"  [Save] {asset.get_path_name()}")
 
     print("\n" + "=" * 60)
-    print("[Xuanming] M1.3 蓝图链路完成")
+    print("[Pandora] M1.3 蓝图链路完成")
     print("验证:")
     print("  1. PIE 跑起来，看角色右手是不是有个 Cube 形状的 'AK'")
     print("  2. 鼠标左键开火，控制台 / 屏幕看 DrawDebugLine 是否绘制")
-    print("  3. 对着另一个角色（或 PlayerStart 旁边的 BP_XuanmingCharacter）开火")
+    print("  3. 对着另一个角色（或 PlayerStart 旁边的 BP_PandoraCharacter）开火")
     print("     检查 Health 是不是从 100 减到 75 / 50 / 25 / 0")
     print("=" * 60)
 

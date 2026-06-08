@@ -1,4 +1,4 @@
-# Xuanming（玄冥）— Claude Code 上下文
+# Pandora（Pandora）— Claude Code 上下文
 
 > 这个文件是给 Claude Code 看的项目上下文摘要。新会话开始时会自动读入。
 > 用户视角的完整文档在 `README.md`。
@@ -8,10 +8,10 @@
 
 ## 项目定位
 
-- **名字**：Xuanming（玄冥）—— 仙道风英文代号 + 现代军事 FPS 玩法（反差搭配）
+- **名字**：Pandora（Pandora）—— 仙道风英文代号 + 现代军事 FPS 玩法（反差搭配）
 - **玩法对标**：腾讯《三角洲行动》手游，战术 FPS、多人对战
 - **架构**：Unreal Engine 5.7.4 源码版 + Dedicated Server + Client
-- **仓库**：https://github.com/luyuancpp/Xuanming（public）
+- **仓库**：https://github.com/luyuancpp/Pandora（public）
 
 **用户希望做一款"上线运营"的游戏**。但他/她也理解类似规模的游戏需要 30+ 人团队、亿级预算、数年时间。这个仓库只是**正确的工程起点**，不是游戏本体。
 
@@ -19,7 +19,7 @@
 
 | 占位符 | 含义 |
 |---|---|
-| `${PROJECT_ROOT}` | 项目根（本仓库根，含 `Xuanming.uproject`） |
+| `${PROJECT_ROOT}` | 项目根（本仓库根，含 `Pandora.uproject`） |
 | `${ENGINE_ROOT}` | UE 5.7.4 源码引擎根 |
 | `${PROJECT_ROOT}/.claude` | Claude Code 会话状态（已 gitignored） |
 | `${ENGINE_ROOT}/.claude` | **Junction → ${PROJECT_ROOT}/.claude**，引擎里物理上不存在真实数据 |
@@ -78,7 +78,7 @@
 
 ## 当前进度（更新一行）
 
-- **最新里程碑**：M1.5 闭环（GAS 框架 + 玄冥冰咒示例技能，PIE 单人 + 朝 Dummy 打别人验证全过；DS+多 Client 留 M1.x）
+- **最新里程碑**：M1.5 闭环（GAS 框架 + Pandora冰咒示例技能，PIE 单人 + 朝 Dummy 打别人验证全过；DS+多 Client 留 M1.x）
 - **下一步**：M1.x 死亡-重生 + KillFeed → DS 模式补验冰咒 → 一个月冲刺
 - 历史里程碑详情：`Docs/ClaudeContext/Milestones.md`
 - 一个月冲刺规划：`Docs/ClaudeContext/SprintPlan.md`

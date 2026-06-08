@@ -8,8 +8,8 @@
 
 | 服务器 | 进程 | 端口 | GameMode | 玩家上限 | 同步频率 | 技能行为 |
 |---|---|---|---|---|---|---|
-| 主城（Hub） | 独立 DS 进程 | 7778 | `XuanmingHubGameMode` | **50 人**（甜区） | 10Hz + AOI 半径 50m | 表演型：放特效但**不**结算伤害（State.InHub tag 拦截 ApplyDamage） |
-| 战斗服（Match） | 独立 DS 进程 | 7777 | `XuanmingMatchGameMode` | **100 人/局**（同局，非同屏） | 60Hz + AOI + Significance | 完整 GAS 命中结算 |
+| 主城（Hub） | 独立 DS 进程 | 7778 | `PandoraHubGameMode` | **50 人**（甜区） | 10Hz + AOI 半径 50m | 表演型：放特效但**不**结算伤害（State.InHub tag 拦截 ApplyDamage） |
+| 战斗服（Match） | 独立 DS 进程 | 7777 | `PandoraMatchGameMode` | **100 人/局**（同局，非同屏） | 60Hz + AOI + Significance | 完整 GAS 命中结算 |
 
 **主城是真 DS 不是 UI 大厅** —— 用户视角进游戏立刻就在主城里看到其他 50 个真人玩家走动放技能聊天，组队从主城 P2P 邀请，匹配从主城排队，战斗结束 ServerTravel 回主城。这个体感对齐三角洲手游 / 原神蒙德城 / FF14 主城。
 
@@ -34,7 +34,7 @@ Week 1：假登录 + 主城骨架
   - 假登录：本地 JSON 模拟账号，UMG 登录界面 → 进 L_Hub_01
   - 不接真后端（M2 再做），但 PlayerState 字段按真账号设计（AccountId/Nickname/Avatar）
   - L_Hub_01 主城白盒（100m × 100m，含出生点、传送门、训练场区域）
-  - XuanmingHubGameMode：继承 GameMode，禁伤害结算（重写 ApplyDamage 或 GAS tag 拦截）
+  - PandoraHubGameMode：继承 GameMode，禁伤害结算（重写 ApplyDamage 或 GAS tag 拦截）
   - 主城 DS 跑通（沿用 LaunchServer.bat 框架，端口 7778 区分战斗服 7777）
 
 Week 2：主城多人 + 表演技能
@@ -51,7 +51,7 @@ Week 3：组队 + 匹配
   - 不做 MMR（M3 再做），先 FIFO 凑够人就开局
 
 Week 4：战斗服 + 联调
-  - XuanmingMatchGameMode（继承现有 GameMode，开启伤害结算）
+  - PandoraMatchGameMode（继承现有 GameMode，开启伤害结算）
   - 战斗服压测：先 60 人，能稳过再加到 100（不行就停在 60）
   - 主城 ↔ 战斗服 ↔ 主城 闭环（战斗结束 ServerTravel 回主城）
   - Bug 修复 + Demo ��制 + commit
@@ -73,14 +73,14 @@ Week 4：战斗服 + 联调
 
 ### 给招人铺量做的准备（Sprint 期间必须顺手做的事）
 
-1. **代码注释**：所有 C++ 类（特别是 `XuanmingHubGameMode` / `XuanmingMatchGameMode` / `UXuanmingAttributeSet` / `UXuanmingGA_*`）必须有中文 class-level 注释，说清职责 + 为什么这么写
-2. **模块边界**：尽早拆 Game Module，不要全部塞 `Source/Xuanming/`。Sprint 至少拆出：
-   - `XuanmingCore`（GameMode/PlayerState/Character 基类）
-   - `XuanmingAbility`（GAS 派生）
-   - `XuanmingUI`（MVVM ViewModels）
-   - `XuanmingNet`（匹配服客户端、ClientTravel 封装）
+1. **代码注释**：所有 C++ 类（特别是 `PandoraHubGameMode` / `PandoraMatchGameMode` / `UPandoraAttributeSet` / `UPandoraGA_*`）必须有中文 class-level 注释，说清职责 + 为什么这么写
+2. **模块边界**：尽早拆 Game Module，不要全部塞 `Source/Pandora/`。Sprint 至少拆出：
+   - `PandoraCore`（GameMode/PlayerState/Character 基类）
+   - `PandoraAbility`（GAS 派生）
+   - `PandoraUI`（MVVM ViewModels）
+   - `PandoraNet`（匹配服客户端、ClientTravel 封装）
    - 拆早不拆晚，后期拆要动 include 全网
-3. **命名规范文档**：写 `Docs/CodingStyle.md`（500 字内）说清楚 `A/U/F/I/E` 前缀、子类用 `Xuanming` 前缀、UFUNCTION 命名、UPROPERTY 分组。新人入职第一天看这个
+3. **命名规范文档**：写 `Docs/CodingStyle.md`（500 字内）说清楚 `A/U/F/I/E` 前缀、子类用 `Pandora` 前缀、UFUNCTION 命名、UPROPERTY 分组。新人入职第一天看这个
 4. **Sprint Week 4 末尾交付物**除了 demo 本身，还要：
    - `Docs/Onboarding.md`：新程序入职 day1 看的（环境搭建、首次编译、跑通 PIE / 真 DS）
    - `Docs/Architecture.md`：架构总览图（主城 DS / 战斗服 DS / 匹配服 / 客户端 四方关系）

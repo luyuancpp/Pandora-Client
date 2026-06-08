@@ -10,7 +10,7 @@
 | `LogStreaming: Warning: Failed to read file 'doc_16x.png'` 等图标缺失 | 引擎 Slate 资源 | **忽略**。引擎自带、与项目无关 |
 | `LogWindows: Failed to load 'aqProf.dll' / 'VtuneApi.dll' / 'Wintab32.dll'` | 引擎试探可选探查 dll | **忽略**。本机没装就略过，不影响功能 |
 | `PixWinPlugin: PIX capture plugin failed to initialize` | 引擎自带 PIX 插件 | **忽略**。除非你真打算用 PIX |
-| VS2026 编整个 sln 13 个失败（SlateViewer / Catch2 / AutoRTFMTests） | 引擎自带工具/测试 | **不要编整个 sln**，右键单独编 `Xuanming` 项目即可 |
+| VS2026 编整个 sln 13 个失败（SlateViewer / Catch2 / AutoRTFMTests） | 引擎自带工具/测试 | **不要编整个 sln**，右键单独编 `Pandora` 项目即可 |
 
 ## 判定标准
 
@@ -24,7 +24,7 @@
 ## 正确的 workaround 方向（按优先级）
 
 1. 项目侧脚本（`.bat` / `.py` / `Build.cs`）绕开问题
-2. 项目侧加 C++ 工具类（如 `UXuanmingSocketTools`，绕开 Python 反射限制）
+2. 项目侧加 C++ 工具类（如 `UPandoraSocketTools`，绕开 Python 反射限制）
 3. 项目侧 `Directory.Build.props` / `.editorconfig` / `<NoWarn>` 屏蔽噪声
 4. 文档化"已知噪声"让团队知道这是预期行为
 5. **真要改引擎**：先在这个表里加一行、说清成本、用户书面同意、单独建一个引擎 fork 分支，且每次升级前重新审视

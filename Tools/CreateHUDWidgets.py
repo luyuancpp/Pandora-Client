@@ -1,5 +1,5 @@
 """
-Xuanming - 创建 WBP_PlayerHUD 并链到 BP_XuanmingPlayerController（M1.4 MVVM 路线）
+Pandora - 创建 WBP_PlayerHUD 并链到 BP_PandoraPlayerController（M1.4 MVVM 路线）
 
 在 UE 编辑器里执行:
   Tools -> Execute Python Script -> 选 Tools/CreateHUDWidgets.py
@@ -7,7 +7,7 @@ Xuanming - 创建 WBP_PlayerHUD 并链到 BP_XuanmingPlayerController（M1.4 MVV
 做的事（幂等, 100% 自动）:
   1. 确保 /Game/UI 目录存在
   2. 创建 /Game/UI/WBP_PlayerHUD（继承 UUserWidget, 空控件树）
-  3. 把 BP_XuanmingPlayerController.HUDWidgetClass 设成 WBP_PlayerHUD.GeneratedClass
+  3. 把 BP_PandoraPlayerController.HUDWidgetClass 设成 WBP_PlayerHUD.GeneratedClass
   4. 保存两个资产
 
 脚本不做（用户在 Designer + MVVM 面板手搭, 行业惯例）:
@@ -22,7 +22,7 @@ Xuanming - 创建 WBP_PlayerHUD 并链到 BP_XuanmingPlayerController（M1.4 MVV
 
 依赖:
   - C++ Editor 已编译 M1.4 改动 (PlayerController + PlayerViewModel + MVVM 插件)
-  - BP_XuanmingPlayerController 已存在 (M1.1)
+  - BP_PandoraPlayerController 已存在 (M1.1)
 """
 
 import unreal
@@ -33,7 +33,7 @@ HUD_FOLDER       = "/Game/UI"
 HUD_BP_NAME      = "WBP_PlayerHUD"
 HUD_BP_PATH      = f"{HUD_FOLDER}/{HUD_BP_NAME}"
 
-PC_BP_PATH       = "/Game/Blueprints/PlayerControllers/BP_XuanmingPlayerController"
+PC_BP_PATH       = "/Game/Blueprints/PlayerControllers/BP_PandoraPlayerController"
 
 
 # ---------- 工具 ----------
@@ -76,14 +76,14 @@ def create_hud_wbp():
 
 
 def link_to_player_controller(wbp):
-    """改 BP_XuanmingPlayerController.HUDWidgetClass = WBP_PlayerHUD.GeneratedClass"""
+    """改 BP_PandoraPlayerController.HUDWidgetClass = WBP_PlayerHUD.GeneratedClass"""
     pc_bp = load_or_die(PC_BP_PATH)
     pc_cdo = unreal.get_default_object(pc_bp.generated_class())
     if pc_cdo is None:
-        raise RuntimeError("拿不到 BP_XuanmingPlayerController CDO")
+        raise RuntimeError("拿不到 BP_PandoraPlayerController CDO")
 
     pc_cdo.set_editor_property("HUDWidgetClass", wbp.generated_class())
-    print(f"  [Link] BP_XuanmingPlayerController.HUDWidgetClass = {HUD_BP_NAME}")
+    print(f"  [Link] BP_PandoraPlayerController.HUDWidgetClass = {HUD_BP_NAME}")
     return pc_bp
 
 
@@ -96,20 +96,20 @@ def save(*assets):
 # ---------- main ----------
 def main():
     print("=" * 60)
-    print("[Xuanming] M1.4 MVVM - 创建 WBP_PlayerHUD + 链 PC")
+    print("[Pandora] M1.4 MVVM - 创建 WBP_PlayerHUD + 链 PC")
     print("=" * 60)
 
     print("\n[1/3] 创建 WBP_PlayerHUD")
     wbp = create_hud_wbp()
 
-    print("\n[2/3] 链到 BP_XuanmingPlayerController.HUDWidgetClass")
+    print("\n[2/3] 链到 BP_PandoraPlayerController.HUDWidgetClass")
     pc_bp = link_to_player_controller(wbp)
 
     print("\n[3/3] 保存")
     save(wbp, pc_bp)
 
     print("\n" + "=" * 60)
-    print("[Xuanming] M1.4 资产骨架就绪")
+    print("[Pandora] M1.4 资产骨架就绪")
     print("=" * 60)
     print()
     print("【接下来需要你在 Editor 里手搭, 约 10 分钟】")
@@ -156,7 +156,7 @@ def main():
     print("WBP 编辑器顶部菜单 Window -> View Bindings (MVVM 插件提供的窗口)")
     print()
     print("【B1. 添加 ViewModel】左下角 Viewmodels 面板 -> 加号:")
-    print("       View Model Class : XuanmingPlayerViewModel")
+    print("       View Model Class : PandoraPlayerViewModel")
     print("       View Model Name  : PlayerViewModel  (必须和 PC.PlayerViewModelName 完全一致)")
     print("       Creation Type    : Manual           (PC 手动注入, 不让 MVVM 自动 spawn)")
     print()

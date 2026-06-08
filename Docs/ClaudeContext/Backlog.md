@@ -3,7 +3,7 @@
 1. **EOS（Epic Online Services）公网匹配集成**：需注册 Epic 开发者拿 ProductID/SandboxID
 2. **后端服务**：Go/Java 账号 + 匹配服
 3. **CI/CD**：GitHub Actions 自动编译 DS
-4. **商标查询**："玄冥"在中国商标网 + 域名注册
+4. **商标查询**："Pandora"在中国商标网 + 域名注册
 5. **美术外包对接**：M2 阶段换正式角色资产，按 SK_Mannequin 标准骨架做就零改动替换
 6. **Git LFS**：`.gitattributes` 已配 `*.uasset filter=lfs`，但本机 git-lfs 未装。
    M2 前补装：`winget install GitHub.GitLFS` → `git lfs install` → `git lfs migrate import --include="*.uasset,*.umap"`

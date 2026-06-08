@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 > nul
 REM ============================================================
-REM  Xuanming - Build and Cook Win64 Dedicated Server (Shipping)
+REM  Pandora - Build and Cook Win64 Dedicated Server (Shipping)
 REM ============================================================
 setlocal
 
@@ -9,12 +9,12 @@ call "%~dp0Tools\ResolveEngineRoot.bat" || (
     pause
     exit /b 1
 )
-set PROJECT_FILE=%~dp0Xuanming.uproject
+set PROJECT_FILE=%~dp0Pandora.uproject
 set OUTPUT_DIR=%~dp0Build\WindowsServer
 set CONFIG=Shipping
 
-echo [Xuanming] Building Win64 Dedicated Server (%CONFIG%)...
-echo [Xuanming] Output: %OUTPUT_DIR%
+echo [Pandora] Building Win64 Dedicated Server (%CONFIG%)...
+echo [Pandora] Output: %OUTPUT_DIR%
 echo.
 
 call "%ENGINE_ROOT%\Engine\Build\BatchFiles\RunUAT.bat" ^
@@ -36,13 +36,13 @@ call "%ENGINE_ROOT%\Engine\Build\BatchFiles\RunUAT.bat" ^
     -utf8output
 
 if errorlevel 1 (
-    echo [Xuanming] ERROR: Win64 server build failed.
+    echo [Pandora] ERROR: Win64 server build failed.
     pause
     exit /b 1
 )
 
 echo.
-echo [Xuanming] Win64 Server build complete.
+echo [Pandora] Win64 Server build complete.
 echo Output: %OUTPUT_DIR%\WindowsServer\
-echo Run:    XuanmingServer.exe -log -port=7777
+echo Run:    PandoraServer.exe -log -port=7777
 pause

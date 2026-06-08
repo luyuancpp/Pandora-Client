@@ -1,11 +1,11 @@
 """
-Xuanming - 给 Mannequin 加 WeaponSocket（M1.3）
+Pandora - 给 Mannequin 加 WeaponSocket（M1.3）
 
 在 UE 编辑器里执行:
   Tools -> Execute Python Script -> 选 Tools/AddWeaponSocket.py
 
 走的路径:
-  Python -> UXuanmingSocketTools::AddWeaponSocketToMesh(C++ BlueprintCallable)
+  Python -> UPandoraSocketTools::AddWeaponSocketToMesh(C++ BlueprintCallable)
   -> 直接裸字段赋值 USkeletalMeshSocket（C++ 端没 BP 可写性检查）
 
 为什么不直接在 Python 里构造 USkeletalMeshSocket:
@@ -16,8 +16,8 @@ Xuanming - 给 Mannequin 加 WeaponSocket（M1.3）
   C++ 端裸字段赋值不走这套反射检查，是唯一可行路径。
 
 依赖:
-  Source/Xuanming/Public/XuanmingSocketTools.h（M1.3 引入）
-  必须先编 Editor 才能在 Python 里调到 UXuanmingSocketTools。
+  Source/Pandora/Public/PandoraSocketTools.h（M1.3 引入）
+  必须先编 Editor 才能在 Python 里调到 UPandoraSocketTools。
 
 UE5 Manny 资产命名约定:
   SK_Mannequin       = USkeleton（骨架）
@@ -40,7 +40,7 @@ SOCKET_SCALE    = unreal.Vector(1.0, 1.0, 1.0)
 
 def main():
     print("=" * 60)
-    print(f"[Xuanming] 给 Mannequin 加 {SOCKET_NAME}")
+    print(f"[Pandora] 给 Mannequin 加 {SOCKET_NAME}")
     print("=" * 60)
 
     skm = unreal.EditorAssetLibrary.load_asset(SKELETAL_MESH_PATH)
@@ -58,10 +58,10 @@ def main():
     print(f"      关联 Skeleton: {skeleton.get_path_name()}")
 
     # 走 C++ BlueprintCallable，绕�� Python 对 BlueprintReadOnly 字段的写禁止
-    # 函数全名: UXuanmingSocketTools::AddWeaponSocketToMesh
-    # Python 暴露名: unreal.XuanmingSocketTools.add_weapon_socket_to_mesh
+    # 函数全名: UPandoraSocketTools::AddWeaponSocketToMesh
+    # Python 暴露名: unreal.PandoraSocketTools.add_weapon_socket_to_mesh
     print(f"[2/3] 调用 C++ AddWeaponSocketToMesh")
-    ok = unreal.XuanmingSocketTools.add_weapon_socket_to_mesh(
+    ok = unreal.PandoraSocketTools.add_weapon_socket_to_mesh(
         skeletal_mesh=skm,
         socket_name=SOCKET_NAME,
         parent_bone_name=PARENT_BONE,
@@ -85,7 +85,7 @@ def main():
     unreal.EditorAssetLibrary.save_loaded_asset(skeleton)
 
     print("\n" + "=" * 60)
-    print(f"[Xuanming] {SOCKET_NAME} 已加到 hand_r")
+    print(f"[Pandora] {SOCKET_NAME} 已加到 hand_r")
     print(f"  Location = {SOCKET_LOCATION}")
     print(f"  Rotation = {SOCKET_ROTATION}")
     print("接下来:")

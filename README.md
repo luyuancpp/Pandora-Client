@@ -1,4 +1,4 @@
-# Xuanming（玄冥）
+# Pandora（Pandora）
 
 一个基于 Unreal Engine 5.7 的战术 FPS 多人对战项目，支持 Dedicated Server + Client 架构。
 
@@ -7,28 +7,28 @@
 ## 项目结构
 
 ```
-Xuanming/
-├── Xuanming.uproject          # 项目入口
+Pandora/
+├── Pandora.uproject          # 项目入口
 ├── Source/
-│   ├── Xuanming.Target.cs           # Game target（默认游戏）
-│   ├── XuanmingEditor.Target.cs     # Editor target（编辑器）
-│   ├── XuanmingServer.Target.cs     # Dedicated Server target
-│   ├── XuanmingClient.Target.cs     # Client target
-│   └── Xuanming/                    # 主 C++ 模块
-│       ├── Xuanming.Build.cs
-│       ├── Xuanming.h / .cpp
+│   ├── Pandora.Target.cs           # Game target（默认游戏）
+│   ├── PandoraEditor.Target.cs     # Editor target（编辑器）
+│   ├── PandoraServer.Target.cs     # Dedicated Server target
+│   ├── PandoraClient.Target.cs     # Client target
+│   └── Pandora/                    # 主 C++ 模块
+│       ├── Pandora.Build.cs
+│       ├── Pandora.h / .cpp
 │       ├── Public/                  # 头文件
-│       │   ├── XuanmingGameMode.h
-│       │   ├── XuanmingGameState.h
-│       │   ├── XuanmingPlayerController.h
-│       │   ├── XuanmingPlayerState.h
-│       │   └── XuanmingCharacter.h
+│       │   ├── PandoraGameMode.h
+│       │   ├── PandoraGameState.h
+│       │   ├── PandoraPlayerController.h
+│       │   ├── PandoraPlayerState.h
+│       │   └── PandoraCharacter.h
 │       └── Private/                 # 实现文件
-│           ├── XuanmingGameMode.cpp
-│           ├── XuanmingGameState.cpp
-│           ├── XuanmingPlayerController.cpp
-│           ├── XuanmingPlayerState.cpp
-│           └── XuanmingCharacter.cpp
+│           ├── PandoraGameMode.cpp
+│           ├── PandoraGameState.cpp
+│           ├── PandoraPlayerController.cpp
+│           ├── PandoraPlayerState.cpp
+│           └── PandoraCharacter.cpp
 ├── Config/
 │   ├── DefaultEngine.ini      # 引擎/网络配置
 │   ├── DefaultGame.ini        # 项目元数据
@@ -79,17 +79,17 @@ Xuanming/
 REM 1. 生成 VS 工程文件（首次会自动编译 UBT，约 10-20 秒）
 GenerateProjectFiles.bat
 
-REM 2. 用 VS 打开 Xuanming.sln，或直接命令行编译：
+REM 2. 用 VS 打开 Pandora.sln，或直接命令行编译：
 BuildEditor.bat
 
-REM 3. 启动编辑器（双击 Xuanming.uproject 即可）
+REM 3. 启动编辑器（双击 Pandora.uproject 即可）
 ```
 
 `GenerateProjectFiles.bat` 内部做了 4 件事：
 1. 跑 `Tools\CheckEngineUntouched.bat` 验证引擎没被改
 2. 检查 .NET 8 SDK 存在
 3. 如果 `Engine/Source/Programs/UnrealBuildTool/bin/Development/UnrealBuildTool.dll` 不存在，用项目的 .NET 8 编译它（产物落在引擎 `bin/`，被 `.gitignore` 屏蔽）
-4. 调 UBT 生成 `Xuanming.sln`
+4. 调 UBT 生成 `Pandora.sln`
 
 ### 关于 `global.json`
 
@@ -115,19 +115,19 @@ REM 3. 启动编辑器（双击 Xuanming.uproject 即可）
 为了**绝对防止** Claude Code 或任何其他工具污染引擎仓库，本项目提供了一键安装脚本：
 
 ```cmd
-F:\work\Xuanming\Tools\SetupEngineGuards.bat
+F:\work\Pandora\Tools\SetupEngineGuards.bat
 ```
 
 它会装两道保险：
 
 #### 第一道：Junction 重定向（物理层）
 
-把 `F:\work\UnrealEngine\.claude` 做成指向 `F:\work\Xuanming\.claude` 的目录 junction。
+把 `F:\work\UnrealEngine\.claude` 做成指向 `F:\work\Pandora\.claude` 的目录 junction。
 
-任何工具（包括 Claude Code 本身）写入 `F:\work\UnrealEngine\.claude\xxx` 时，操作系统会**透明地**把它落到 `F:\work\Xuanming\.claude\xxx`，引擎仓库根本不会有这个目录的真实数据。
+任何工具（包括 Claude Code 本身）写入 `F:\work\UnrealEngine\.claude\xxx` 时，操作系统会**透明地**把它落到 `F:\work\Pandora\.claude\xxx`，引擎仓库根本不会有这个目录的真实数据。
 
 ```
-F:\work\UnrealEngine\.claude  ──[Junction]──>  F:\work\Xuanming\.claude
+F:\work\UnrealEngine\.claude  ──[Junction]──>  F:\work\Pandora\.claude
                                                       │
                                                       └──[.gitignore 屏蔽]
 ```
@@ -149,7 +149,7 @@ git commit -m "试试看"
 
 换电脑或重装环境时，跑一次：
 ```cmd
-F:\work\Xuanming\Tools\SetupEngineGuards.bat
+F:\work\Pandora\Tools\SetupEngineGuards.bat
 ```
 
 脚本是幂等的（重跑无害）：
@@ -160,7 +160,7 @@ F:\work\Xuanming\Tools\SetupEngineGuards.bat
 
 任何时候都可以验证引擎仓库纯净：
 ```cmd
-F:\work\Xuanming\Tools\CheckEngineUntouched.bat
+F:\work\Pandora\Tools\CheckEngineUntouched.bat
 ```
 
 输出 `[PurityCheck] OK: engine tracked files are clean.` 就是干净的。
@@ -193,7 +193,7 @@ LaunchClient.bat
 BuildServer.bat
 ```
 
-生成的二进制在 `Binaries\Win64\XuanmingServer.exe`。
+生成的二进制在 `Binaries\Win64\PandoraServer.exe`。
 
 ### Linux Server（推荐生产环境）
 
@@ -203,7 +203,7 @@ REM 见 https://dev.epicgames.com/documentation/zh-cn/unreal-engine/linux-develo
 
 F:\work\UnrealEngine\Engine\Build\BatchFiles\RunUAT.bat ^
     BuildCookRun ^
-    -project="%CD%\Xuanming.uproject" ^
+    -project="%CD%\Pandora.uproject" ^
     -noP4 -platform=Linux -clientconfig=Development -serverconfig=Development ^
     -cook -allmaps -build -stage -pak -archive ^
     -archivedirectory="%CD%\Build\LinuxServer" ^
@@ -212,8 +212,8 @@ F:\work\UnrealEngine\Engine\Build\BatchFiles\RunUAT.bat ^
 
 部署到 Linux：
 ```bash
-chmod +x XuanmingServer
-./XuanmingServer -log -port=7777
+chmod +x PandoraServer
+./PandoraServer -log -port=7777
 ```
 
 ---
@@ -223,7 +223,7 @@ chmod +x XuanmingServer
 ```cmd
 F:\work\UnrealEngine\Engine\Build\BatchFiles\RunUAT.bat ^
     BuildCookRun ^
-    -project="%CD%\Xuanming.uproject" ^
+    -project="%CD%\Pandora.uproject" ^
     -noP4 -platform=Win64 -clientconfig=Development ^
     -cook -allmaps -build -stage -pak -archive ^
     -archivedirectory="%CD%\Build\WindowsClient"
@@ -249,11 +249,11 @@ F:\work\UnrealEngine\Engine\Build\BatchFiles\RunUAT.bat ^
 
 | 类 | 存在位置 | 职责 |
 |---|---|---|
-| `AXuanmingGameMode` | 只在 Server | 游戏规则、登入登出、胜负判定 |
-| `AXuanmingGameState` | Server + 所有 Client | 比赛全局状态（计时、阶段） |
-| `AXuanmingPlayerController` | 本地 Client + Server | 输入、UI、本玩家专属 |
-| `AXuanmingPlayerState` | Server + 所有 Client | 玩家数据（K/D、队伍） |
-| `AXuanmingCharacter` | Server + 所有相关 Client | 角色实体、血量、相机 |
+| `APandoraGameMode` | 只在 Server | 游戏规则、登入登出、胜负判定 |
+| `APandoraGameState` | Server + 所有 Client | 比赛全局状态（计时、阶段） |
+| `APandoraPlayerController` | 本地 Client + Server | 输入、UI、本玩家专属 |
+| `APandoraPlayerState` | Server + 所有 Client | 玩家数据（K/D、队伍） |
+| `APandoraCharacter` | Server + 所有相关 Client | 角色实体、血量、相机 |
 
 **服务器权威原则**：伤害、移动校验、武器开火都必须在 Server 上判定，客户端只发请求和做预测。
 
@@ -263,7 +263,7 @@ F:\work\UnrealEngine\Engine\Build\BatchFiles\RunUAT.bat ^
 
 ### Phase 1 - 基础玩法（2-4 周）
 - [ ] EnhancedInput 接入（WASD 移动、鼠标视角、跳跃、蹲伏）
-- [ ] 武器基类 `AXuanmingWeapon` + 服务器权威射击
+- [ ] 武器基类 `APandoraWeapon` + 服务器权威射击
 - [ ] 命中检测（Hitscan + 线性追踪）
 - [ ] 简单 HUD（血量、弹药）
 - [ ] 重生流程

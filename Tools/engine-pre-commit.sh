@@ -1,5 +1,5 @@
 #!/bin/sh
-# pre-commit hook installed by Xuanming/Tools/SetupEngineGuards.bat.
+# pre-commit hook installed by Pandora/Tools/SetupEngineGuards.bat.
 # Refuse any commit that touches .claude/ in this engine repo.
 
 if git diff --cached --name-only | grep -q '^\.claude/'; then
