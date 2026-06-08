@@ -218,20 +218,40 @@ void UPandoraBackendSubsystem::Subscribe(int64 LastSeenMs)
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request =
 		MakeGrpcWebRequest(MethodSubscribe, W.GetBytes(), /*bWithAuth*/ true);
 
+	// Subscribe 是 server stream 长连接。UE HTTP 默认 ActivityTimeout=30s,空闲时会由客户端主动断流。
+	Request->SetTimeout(0.0f);
+	Request->SetActivityTimeout(0.0f);
+
 	// 流式接收：每收到一段响应字节回调一次（可能在非游戏线程）?
 	// ⚠️ 引擎版本敏感：UE 5.7 ?SetResponseBodyReceiveStreamDelegateV2 / FHttpRequestStreamDelegateV2?
 	//   若所用引擎暴露的是非 V2 签名，这里是唯一需要微调的集成点?
-	Request->SetResponseBodyReceiveStreamDelegateV2(
+	const bool bStreamDelegateBound = Request->SetResponseBodyReceiveStreamDelegateV2(
 		FHttpRequestStreamDelegateV2::CreateUObject(this, &UPandoraBackendSubsystem::OnStreamBytes));
+
+	Request->OnStatusCodeReceived().BindLambda([](FHttpRequestPtr StatusRequest, int32 StatusCode)
+	{
+		UE_LOG(LogPandoraBackend, Verbose,
+			TEXT("Subscribe HTTP status received: code=%d url=%s"),
+			StatusCode,
+			StatusRequest.IsValid() ? *StatusRequest->GetURL() : TEXT("<invalid>"));
+	});
 
 	Request->OnProcessRequestComplete().BindUObject(this, &UPandoraBackendSubsystem::OnStreamHttpComplete);
 
 	StreamRequest = Request;
-	Request->ProcessRequest();
+	const bool bRequestStarted = Request->ProcessRequest();
+	UE_LOG(LogPandoraBackend, Verbose,
+		TEXT("Subscribe stream request started: url=%s delegate=%d process=%d last_seen_ms=%lld"),
+		*Request->GetURL(),
+		bStreamDelegateBound ? 1 : 0,
+		bRequestStarted ? 1 : 0,
+		LastSeenMs);
 }
 
 void UPandoraBackendSubsystem::OnStreamBytes(void* DataPtr, int64& DataLen)
 {
+	UE_LOG(LogPandoraBackend, Verbose, TEXT("Subscribe stream bytes received: len=%lld"), DataLen);
+
 	if (!StreamParser.IsValid())
 	{
 		return; // Stream has already been closed.
@@ -253,7 +273,7 @@ void UPandoraBackendSubsystem::OnStreamBytes(void* DataPtr, int64& DataLen)
 			FPandoraPushFrame Frame;
 			if (ParsePushFrame(Payload, Frame))
 			{
-				UE_LOG(LogPandoraBackend, Warning,
+				UE_LOG(LogPandoraBackend, Log,
 					TEXT("PushFrame received: topic=%s payload_bytes=%d ts=%lld trace=%s"),
 					*Frame.Topic, Frame.Payload.Num(), Frame.TsMs, *Frame.TraceId);
 				Frames.Add(MoveTemp(Frame));
@@ -280,6 +300,16 @@ void UPandoraBackendSubsystem::OnStreamBytes(void* DataPtr, int64& DataLen)
 
 void UPandoraBackendSubsystem::OnStreamHttpComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSucceeded)
 {
+	const int32 HttpCode = Response.IsValid() ? Response->GetResponseCode() : -1;
+	const int32 BodyBytes = Response.IsValid() ? Response->GetContent().Num() : 0;
+	UE_LOG(LogPandoraBackend, Verbose,
+		TEXT("Subscribe stream HTTP complete: succeeded=%d http=%d body_bytes=%d trailer_status=%d trailer=%s"),
+		bSucceeded ? 1 : 0,
+		HttpCode,
+		BodyBytes,
+		StreamTrailerStatus,
+		*StreamTrailerMessage);
+
 	const FString Reason = bSucceeded
 		? FString::Printf(TEXT("stream_ended grpc-status=%d %s"), StreamTrailerStatus, *StreamTrailerMessage)
 		: TEXT("stream_transport_error");
