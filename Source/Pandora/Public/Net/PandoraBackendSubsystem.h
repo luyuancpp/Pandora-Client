@@ -108,6 +108,28 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Config, Category = "Pandora|Backend")
 	bool bDevInsecureTls = true;
 
+	// Dev-only: 没有登录 UI 时自动走 Login -> Subscribe, 用于本机 gRPC-Web 联调.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Config, Category = "Pandora|Backend|Dev")
+	bool bAutoLoginForDev = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Config, Category = "Pandora|Backend|Dev")
+	FString DevLoginAccount = TEXT("test");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Config, Category = "Pandora|Backend|Dev")
+	FString DevLoginPasswordHash = TEXT("abc");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Config, Category = "Pandora|Backend|Dev")
+	FString DevLoginDeviceId = TEXT("ue-dev");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Config, Category = "Pandora|Backend|Dev")
+	FString DevLoginClientVersion = TEXT("1.0");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Config, Category = "Pandora|Backend|Dev")
+	FString DevLoginRegion;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Config, Category = "Pandora|Backend|Dev")
+	FString DevLoginLocale = TEXT("zh-CN");
+
 	// === 事件 ===
 	UPROPERTY(BlueprintAssignable, Category = "Pandora|Backend")
 	FPandoraOnLoginComplete OnLoginComplete;
@@ -148,6 +170,7 @@ public:
 	bool IsStreamActive() const { return StreamRequest.IsValid(); }
 
 	// UGameInstanceSubsystem
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
 private:
@@ -184,4 +207,6 @@ private:
 	TSharedPtr<FPandoraGrpcWebStreamParser> StreamParser;
 	int32 StreamTrailerStatus = -1;
 	FString StreamTrailerMessage;
+
+	bool bDevAutoLoginStarted = false;
 };

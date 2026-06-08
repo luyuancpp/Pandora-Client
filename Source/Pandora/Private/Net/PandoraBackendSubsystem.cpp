@@ -36,6 +36,29 @@ void UPandoraBackendSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
+void UPandoraBackendSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+{
+	Super::Initialize(Collection);
+
+	if (!bAutoLoginForDev || bDevAutoLoginStarted || IsRunningDedicatedServer())
+	{
+		return;
+	}
+
+	bDevAutoLoginStarted = true;
+	UE_LOG(LogPandoraBackend, Warning,
+		TEXT("Dev auto login started: https://%s:%d account=%s"),
+		*GatewayHost, GatewayPort, *DevLoginAccount);
+
+	Login(
+		DevLoginAccount,
+		DevLoginPasswordHash,
+		DevLoginDeviceId,
+		DevLoginClientVersion,
+		DevLoginRegion,
+		DevLoginLocale);
+}
+
 void UPandoraBackendSubsystem::SetGateway(const FString& Host, int32 Port)
 {
 	GatewayHost = Host;
@@ -142,6 +165,20 @@ void UPandoraBackendSubsystem::OnLoginHttpComplete(FHttpRequestPtr Request, FHtt
 	{
 		SessionToken = Result.SessionToken;
 		PlayerId = Result.PlayerId;
+
+		if (bAutoLoginForDev)
+		{
+			UE_LOG(LogPandoraBackend, Warning,
+				TEXT("Dev auto login succeeded: player_id=%lld hub=%s; subscribing push stream"),
+				PlayerId, *Result.HubDsAddr);
+			Subscribe(0);
+		}
+	}
+	else
+	{
+		UE_LOG(LogPandoraBackend, Warning,
+			TEXT("Login failed: transport=%d grpc=%d code=%d error=%s"),
+			Result.bTransportOk ? 1 : 0, Result.GrpcStatus, Result.Code, *Result.Error);
 	}
 
 	OnLoginComplete.Broadcast(Result);
@@ -216,6 +253,9 @@ void UPandoraBackendSubsystem::OnStreamBytes(void* DataPtr, int64& DataLen)
 			FPandoraPushFrame Frame;
 			if (ParsePushFrame(Payload, Frame))
 			{
+				UE_LOG(LogPandoraBackend, Warning,
+					TEXT("PushFrame received: topic=%s payload_bytes=%d ts=%lld trace=%s"),
+					*Frame.Topic, Frame.Payload.Num(), Frame.TsMs, *Frame.TraceId);
 				Frames.Add(MoveTemp(Frame));
 			}
 		}

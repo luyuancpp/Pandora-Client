@@ -43,7 +43,7 @@ public:
 	 * 必须和 WBP 里 ViewModel 的 Name 字段完全一致, 默认 "PlayerViewModel".
 	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Pandora|UI")
-	FName PlayerViewModelName = TEXT("PandoraPlayerViewModel");
+	FName PlayerViewModelName = TEXT("PlayerViewModel");
 
 protected:
 	virtual void BeginPlay() override;
