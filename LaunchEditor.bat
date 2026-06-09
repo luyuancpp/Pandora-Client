@@ -3,8 +3,9 @@ chcp 65001 > nul
 REM ============================================================
 REM  Pandora - Launch Editor (workaround for ZenServer issue)
 REM ------------------------------------------------------------
-REM  双击 Pandora.uproject 会启 ZenServer，目前在你机器上启不来。
-REM  这个脚本用 -ddc=NoZenLocalFallback 禁用 Zen，回退到文件系统 DDC。
+REM  Double-clicking Pandora.uproject starts ZenServer, which is
+REM  currently failing on this machine.
+REM  This script disables Zen and falls back to filesystem DDC.
 REM ============================================================
 setlocal
 
